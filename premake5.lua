@@ -30,3 +30,4 @@ project "entry"
 
 	filter "system:linux"
 		defines { "BR_PLATFORM_LINUX" }
+		links { "X11" }
