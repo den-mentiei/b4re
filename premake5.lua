@@ -20,6 +20,11 @@ project "entry"
 	flags { "FatalWarnings" }
 	files { "src/**.h", "src/**.c" }
 
+	includedirs { "3rdparty/curl/include" }
+	libdirs { "3rdparty/curl/lib/linux_x64" }
+
+	links { "curlDebug" }
+
 	filter "configurations:debug"
 		defines { "DEBUG" }
 		symbols "On"
