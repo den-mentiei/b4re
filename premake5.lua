@@ -14,6 +14,9 @@ project "entry"
 
 	targetdir(path.join(TARGET_DIR, "%{cfg.buildcfg}"))
 
+	includedirs { "3rdparty/bgfx/include" }
+	libdirs { "3rdparty/bgfx/lib/linux_x64" }
+
 	flags { "FatalWarnings" }
 	files { "src/**.h", "src/**.c" }
 
@@ -30,4 +33,16 @@ project "entry"
 
 	filter "system:linux"
 		defines { "BR_PLATFORM_LINUX" }
-		links { "X11" }
+		links { 
+			"bgfxDebug",
+			"bimgDebug",
+			"bxDebug",
+
+			"stdc++",
+			"m",
+			"dl",
+			"pthread",
+
+			"X11",
+			"GL"
+		}
