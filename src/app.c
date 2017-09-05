@@ -5,6 +5,7 @@
 #include <platform.h>
 
 #include "log.h"
+#include "game.h"
 
 static struct {
 	uint16_t w;
@@ -21,7 +22,7 @@ static void check_resized() {
 	}
 }
 
-bool entry_init(int argc, const char* argv[]) {
+bool entry_init(int32_t argc, const char* argv[]) {
 	const entry_window_info_t* ewi = entry_get_window();
 	ctx.w = ewi->width;
 	ctx.h = ewi->height;
@@ -39,7 +40,7 @@ bool entry_init(int argc, const char* argv[]) {
 
 	bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
 
-	return true;
+	return game_init(argc, argv);
 }
 
 bool entry_tick() {
@@ -49,14 +50,15 @@ bool entry_tick() {
 	bgfx_touch(0);
 
 	bgfx_dbg_text_clear(0, false);
-	bgfx_dbg_text_printf(0, 1, 0x4f, "b4re is alive and kicking");
-	bgfx_dbg_text_printf(0, 2, 0x6f, "And even draws something!");
+	bgfx_dbg_text_printf(0, 0, 0x4f, "b4re is alive and kicking");
 
 	bgfx_frame(false);
 
-	return true;
+	float dt = 1/60.0f;
+	return game_update(ctx.w, ctx.h, dt);
 }
 
 void entry_shutdown() {
+	game_shutdown();
 	bgfx_shutdown();
 }
