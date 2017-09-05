@@ -4,8 +4,13 @@
 #include <bgfx.h>
 #include <platform.h>
 
-#include "log.h"
+typedef struct allocator_t allocator_t;
+static void test(const allocator_t* a) {}
+
 #include "game.h"
+#include "http.h"
+#include "allocator.h"
+#include "log.h"
 
 static struct {
 	uint16_t w;
@@ -40,6 +45,8 @@ bool entry_init(int32_t argc, const char* argv[]) {
 
 	bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
 
+	http_init(allocator_main());
+
 	return game_init(argc, argv);
 }
 
@@ -60,5 +67,6 @@ bool entry_tick(float dt) {
 
 void entry_shutdown() {
 	game_shutdown();
+	http_shutdown();
 	bgfx_shutdown();
 }
