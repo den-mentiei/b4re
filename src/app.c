@@ -43,7 +43,7 @@ bool entry_init(int32_t argc, const char* argv[]) {
 	return game_init(argc, argv);
 }
 
-bool entry_tick() {
+bool entry_tick(float dt) {
 	check_resized();
 
 	bgfx_set_view_rect(0, 0, 0, ctx.w, ctx.h);
@@ -51,10 +51,10 @@ bool entry_tick() {
 
 	bgfx_dbg_text_clear(0, false);
 	bgfx_dbg_text_printf(0, 0, 0x4f, "b4re is alive and kicking");
+	bgfx_dbg_text_printf(0, 1, 0x6f, "dt: %0.4fms", dt);
 
 	bgfx_frame(false);
 
-	float dt = 1/60.0f;
 	return game_update(ctx.w, ctx.h, dt);
 }
 

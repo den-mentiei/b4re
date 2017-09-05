@@ -15,5 +15,5 @@ const entry_window_info_t* entry_get_window();
 // Implemented by the user.
 
 bool entry_init(int32_t argc, const char* argv[]);
-bool entry_tick();
+bool entry_tick(float dt);
 void entry_shutdown();

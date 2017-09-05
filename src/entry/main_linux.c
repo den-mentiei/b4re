@@ -11,10 +11,13 @@
 #include <X11/Xutil.h>
 
 #include "log.h"
+#include "timer.h"
 
 // https://tronche.com/gui/x/xlib/events/processing-overview.html
 
 // TODO: Check for errors.
+
+#define MS_PER_FRAME (1000.0f / 60)
 
 static void sleep(uint32_t msec) {
 	struct timespec req = { (time_t)msec/1000, (long)((msec % 1000) * 1000000) };
@@ -63,23 +66,29 @@ int main(int argc, const char* argv[]) {
 
 	bool close;
 	XEvent e;
-	while (!close && entry_tick()) {
-		if (!XPending(display)) {
-			sleep(16);
-			continue;
+	double last = timer_current();
+
+	while (!close) {
+		const double current = timer_current();
+		const double dt = current - last;
+		last = current;
+		
+		if (XPending(display)) {
+			XNextEvent(display, &e);
+
+			switch(e.type) {
+			case ButtonPress:
+				close = true;
+				break;
+			case ConfigureNotify:
+				s_window.width = e.xconfigure.width;
+				s_window.height = e.xconfigure.height;
+				break;
+			}
 		}
 
-		XNextEvent(display, &e);
-
-		switch(e.type) {
-		case ButtonPress:
+		if (!entry_tick(dt))
 			close = true;
-			break;
-		case ConfigureNotify:
-			s_window.width = e.xconfigure.width;
-			s_window.height = e.xconfigure.height;
-			break;
-		}
 	}
 
 	entry_shutdown();
