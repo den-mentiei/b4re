@@ -18,9 +18,18 @@ project "entry"
 	libdirs { "3rdparty/bgfx/lib/linux_x64" }
 
 	flags { "FatalWarnings" }
-	files { "src/**.h", "src/**.c" }
 
-	includedirs { "3rdparty/curl/include" }
+	files {
+		"src/**.h", "src/**.c",
+
+		"3rdparty/tinycthread/*.c"
+	}
+
+	includedirs {
+		"3rdparty/curl/include",
+		"3rdparty/tinycthread"
+	}
+
 	libdirs { "3rdparty/curl/lib/linux_x64" }
 
 	links { "curlDebug" }
