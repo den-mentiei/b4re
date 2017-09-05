@@ -6,8 +6,8 @@
 typedef struct {
 	void* display;
 	void* window;
-	uint32_t width;
-	uint32_t height;
+	uint16_t width;
+	uint16_t height;
 } entry_window_info_t;
 
 const entry_window_info_t* entry_get_window();

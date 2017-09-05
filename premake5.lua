@@ -14,7 +14,7 @@ project "entry"
 
 	targetdir(path.join(TARGET_DIR, "%{cfg.buildcfg}"))
 
-	includedirs { "3rdparty/bgfx/include" }
+	includedirs { "src", "3rdparty/bgfx/include" }
 	libdirs { "3rdparty/bgfx/lib/linux_x64" }
 
 	flags { "FatalWarnings" }
