@@ -39,9 +39,9 @@ project "entry"
 	filter "system:linux"
 		defines { "BR_PLATFORM_LINUX" }
 		links { 
-			"bgfxDebug",
-			"bimgDebug",
-			"bxDebug",
+			"bgfxRelease",
+			"bimgRelease",
+			"bxRelease",
 
 			"stdc++",
 			"m",
