@@ -13,8 +13,6 @@ $(EXECUTABLE): $(PROJECT) touch
 
 $(PROJECT):
 	$(PREMAKE) gmake
-
-completion: $(PROJECT)
 	$(PREMAKE) clang-complete
 
 touch:
