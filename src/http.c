@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <string.h> // memcpy
+#include <time.h> // timespec
 
 #include <curl.h>
 #include <tinycthread.h>
@@ -50,6 +51,7 @@
 static struct {
 	mtx_t multi_lock;
 	CURLM* multi;
+	cnd_t got_work;
 	bool stop_worker;
 	thrd_t thread;
 } ctx = {0};
@@ -57,26 +59,52 @@ static struct {
 static int worker(void* arg) {
 	int running;
 
+	mtx_lock(&ctx.multi_lock);
+	cnd_wait(&ctx.got_work, &ctx.multi_lock);
+	// lock is held now.
+
 	bool exit;
 	while (!exit) {
-		mtx_lock(&ctx.multi_lock);
+		CURLM* h = ctx.multi;
 
 		int running;
-		// TODO: wait for a condvar if there are no running handles.
-		curl_multi_perform(ctx.multi, &running);
+		curl_multi_perform(h, &running);
 
-		int msgs;
-		CURLMsg* m = curl_multi_info_read(ctx.multi, &msgs);
-		if (m && (m->msg == CURLMSG_DONE)) {
-			CURL* eh = m->easy_handle;
-			curl_multi_remove_handle(ctx.multi, eh);
-			curl_easy_cleanup(eh);
+		CURLMsg* m;
+		do {
+			int msgs;
+			m = curl_multi_info_read(h, &msgs);
+			if (m && (m->msg == CURLMSG_DONE)) {
+				CURL* eh = m->easy_handle;
+				curl_multi_remove_handle(h, eh);
+				curl_easy_cleanup(eh);
+			}
+		} while (m);
+
+		if (running > 0) {
+			long timeout;
+			curl_multi_timeout(h, &timeout);
+
+			// It just means libcurl currently has no stored timeout value.
+			if (timeout < 0) timeout = 1000;
+
+			struct timespec t;
+			t.tv_sec  = timeout / 1000;
+			t.tv_nsec = (timeout % 1000) * 1000000;
+
+			cnd_timedwait(&ctx.got_work, &ctx.multi_lock, &t);
+		} else {
+			log_info("[http] worker will sleep til next reqest\n");
+			cnd_wait(&ctx.got_work, &ctx.multi_lock);
+			log_info("[http] worker awaken!\n");
 		}
 
 		exit = ctx.stop_worker;
 
-		mtx_unlock(&ctx.multi_lock);
+		// lock is held now.
 	}
+
+	log_info("[http] worker dies\n");
 
 	return 0;
 }
@@ -87,25 +115,28 @@ void http_init(const allocator_t* alloc) {
 	assert(alloc);
 
 	if (mtx_init(&ctx.multi_lock, mtx_plain) != thrd_success)
-		log_fatal("http: failed to create mutex\n");
+		log_fatal("[http] failed to create mutex\n");
+
+	if (cnd_init(&ctx.got_work) != thrd_success)
+		log_fatal("[http] failed to create a condvar.");
 
 	CURLcode e = curl_global_init(CURL_GLOBAL_DEFAULT);
 	if (e != CURLE_OK)
-		log_fatal("http: failed to init curl\n");
+		log_fatal("[http] failed to init curl\n");
 
 	ctx.multi = curl_multi_init();
 
 	if (thrd_create(&ctx.thread, worker, NULL) != thrd_success)
-		log_fatal("http: failed to create a worker thread\n");
+		log_fatal("[http] failed to create a worker thread\n");
 
 	// TODO: curl_global_init_mem - pass memory functions.
 
 #if DEBUG
 	const curl_version_info_data* info = curl_version_info(CURLVERSION_NOW);
-	log_info("curl version: %s\n", info->version);
-	log_info("curl ssl version: %s\n", info->ssl_version);
-	log_info("curl ssl: %d\n", (info->features & CURL_VERSION_SSL) == 1);
-	log_info("curl zlib: %d\n", (info->features & CURL_VERSION_LIBZ) == 1);
+	log_info("[http] curl version: %s\n", info->version);
+	log_info("[http] curl ssl version: %s\n", info->ssl_version);
+	log_info("[http] curl ssl: %d\n", (info->features & CURL_VERSION_SSL) == 1);
+	log_info("[http] curl zlib: %d\n", (info->features & CURL_VERSION_LIBZ) == 1);
 #endif
 }
 
@@ -134,14 +165,17 @@ static void add_to_multi(CURL* h) {
 
 	CURLMcode err = curl_multi_add_handle(ctx.multi, h);
 	if (err != CURLM_OK)
-		log_fatal("http: failed to create request - %s\n", curl_multi_strerror(err));
+		log_fatal("[http] failed to create request - %s\n", curl_multi_strerror(err));
 
 	mtx_unlock(&ctx.multi_lock);
 }
 
 void http_get(const char* url) {
 	CURL* h = create_easy(url);
+	curl_easy_setopt(h, CURLOPT_HTTPGET, 1);
 	add_to_multi(h);
+
+	cnd_signal(&ctx.got_work);
 }
 
 void http_post_form(const char* url, const http_form_part_t* parts, size_t count) {
@@ -149,10 +183,11 @@ void http_post_form(const char* url, const http_form_part_t* parts, size_t count
 	assert(count > 0);
 
 	CURL* h = create_easy(url);
+	curl_easy_setopt(h, CURLOPT_HTTPPOST, 1);
 
 	curl_mime* m = curl_mime_init(h);
 	if (!m)
-		log_fatal("http: failed to create mime data\n");
+		log_fatal("[http] failed to create mime data\n");
 
 	for (size_t i = 0; i < count; ++i) {
 		curl_mimepart* p = curl_mime_addpart(m);
@@ -165,6 +200,7 @@ void http_post_form(const char* url, const http_form_part_t* parts, size_t count
 	add_to_multi(h);
 
 	// TODO: curl_mime_free(mime); after perform!
+	cnd_signal(&ctx.got_work);
 }
 
 void http_shutdown() {
@@ -173,6 +209,8 @@ void http_shutdown() {
 	mtx_lock(&ctx.multi_lock);
 	ctx.stop_worker = true;
 	mtx_unlock(&ctx.multi_lock);
+
+	cnd_signal(&ctx.got_work);
 
 	thrd_join(ctx.thread, NULL);
 	mtx_destroy(&ctx.multi_lock);
