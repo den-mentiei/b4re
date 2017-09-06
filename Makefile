@@ -27,4 +27,7 @@ build: $(EXECUTABLE)
 run: $(EXECUTABLE)
 	@ $(EXECUTABLE)
 
-.PHONY: completion touch clean build run
+debug: $(EXECUTABLE)
+	@ gdb $(EXECUTABLE)
+
+.PHONY: completion touch clean build run debug
