@@ -7,6 +7,7 @@
 
 static void test_handler(const uint8_t* data, size_t size, void* payload) {
 	log_info(data);
+	log_info("\n");
 }
 
 bool game_init(int32_t argc, const char* argv[]) {

@@ -2,8 +2,8 @@
 
 #include <stdbool.h>
 #include <assert.h>
-#include <string.h> // memcpy
-#include <time.h> // timespec
+#include <string.h> // memcpy, memset
+#include <time.h>   // timespec
 
 #include <curl.h>
 #include <tinycthread.h>
@@ -12,15 +12,46 @@
 #include "pool.h"
 #include "log.h"
 
-// https://curl.haxx.se/libcurl/c/CURLOPT_PRIVATE.html
-	
+#define RESPONSE_INITIAL_POOL_CAPACITY 8
+#define MAX_RESPONSE_SIZE (16 * 1024 * 1024)
+
+typedef struct {
+	curl_mime* mime;
+
+	http_handler_t handler;
+	void* handler_payload;
+
+	size_t free;
+	size_t size;
+	uint8_t data[];
+} pending_t;
+
 static struct {
 	mtx_t multi_lock;
 	CURLM* multi;
+
 	cnd_t got_work;
 	bool stop_worker;
+
 	thrd_t thread;
+
+	pool_t* pending;
 } ctx = {0};
+
+static void free_easy_handle(CURL* h) {
+	assert(h);
+
+	pending_t* p;
+	curl_easy_getinfo(h, CURLINFO_PRIVATE, &p);
+	assert(p);
+
+	if (p->mime) curl_mime_free(p->mime);
+
+	p->handler(p->data, p->size, p->handler_payload);
+
+	// TODO: pool_free(ctx.pending, r); thread-safety!
+	curl_easy_cleanup(h);
+}
 
 static int worker(void* arg) {
 	int running;
@@ -43,7 +74,7 @@ static int worker(void* arg) {
 			if (m && (m->msg == CURLMSG_DONE)) {
 				CURL* eh = m->easy_handle;
 				curl_multi_remove_handle(h, eh);
-				curl_easy_cleanup(eh);
+				free_easy_handle(eh);
 			}
 		} while (m);
 
@@ -73,21 +104,47 @@ static int worker(void* arg) {
 	return 0;
 }
 
-static CURL* create_easy(const char* url) {
+static size_t response_write(const char* ptr, size_t size, size_t nmemb, void* userdata) {
+	assert(userdata);
+
+	pending_t*  p      = (pending_t*)userdata;
+	const size_t bytes = size * nmemb;
+
+	// As it will be zero-terminated.
+	if (p->free < bytes + 1) return 0;
+
+	memcpy(p->data + p->size, ptr, bytes);
+	p->free -= bytes;
+	p->size += bytes;
+	p->data[p->size] = 0;
+
+	return bytes;
+}
+
+static pending_t* create_pending() {
+	pending_t* p = pool_alloc(ctx.pending);
+	memset(p, 0, sizeof(pending_t));
+	p->free = MAX_RESPONSE_SIZE - sizeof(pending_t);
+}
+
+static CURL* create_easy(const char* url, pending_t* r) {
 	assert(ctx.multi);
 
 	CURL* h = curl_easy_init();
-	if (!h)
-		log_fatal("failed to create an easy curl handle\n");
+	if (!h) log_fatal("failed to create an easy curl handle\n");
 
 #if DEBUG
-	/* curl_easy_setopt(h, CURLOPT_HEADER, 1); */
 	/* curl_easy_setopt(h, CURLOPT_VERBOSE, 1); */
 #endif
 
 	curl_easy_setopt(h, CURLOPT_URL, url);
 	// Enables all supported built-in compressions.
 	curl_easy_setopt(h, CURLOPT_ACCEPT_ENCODING, "");
+
+	curl_easy_setopt(h, CURLOPT_WRITEFUNCTION, response_write);
+	curl_easy_setopt(h, CURLOPT_WRITEDATA, r);
+
+	curl_easy_setopt(h, CURLOPT_PRIVATE, r);
 
 	return h;
 }
@@ -98,31 +155,27 @@ static void add_to_multi(CURL* h) {
 	mtx_lock(&ctx.multi_lock);
 
 	CURLMcode err = curl_multi_add_handle(ctx.multi, h);
-	if (err != CURLM_OK)
-		log_fatal("[http] failed to create request - %s\n", curl_multi_strerror(err));
+	if (err != CURLM_OK) log_fatal("[http] failed to create request - %s\n", curl_multi_strerror(err));
 
 	mtx_unlock(&ctx.multi_lock);
 }
 
-void http_init(const allocator_t* alloc) {
+void http_init(allocator_t* alloc) {
 	if (ctx.multi) return;
 
 	assert(alloc);
 
-	if (mtx_init(&ctx.multi_lock, mtx_plain) != thrd_success)
-		log_fatal("[http] failed to create mutex\n");
+	ctx.pending = pool_create(MAX_RESPONSE_SIZE, RESPONSE_INITIAL_POOL_CAPACITY, alloc);
 
-	if (cnd_init(&ctx.got_work) != thrd_success)
-		log_fatal("[http] failed to create a condvar.");
+	if (mtx_init(&ctx.multi_lock, mtx_plain) != thrd_success) log_fatal("[http] failed to create mutex\n");
+	if (cnd_init(&ctx.got_work) != thrd_success) log_fatal("[http] failed to create a condvar.");
 
 	CURLcode e = curl_global_init(CURL_GLOBAL_DEFAULT);
-	if (e != CURLE_OK)
-		log_fatal("[http] failed to init curl\n");
+	if (e != CURLE_OK) log_fatal("[http] failed to init curl\n");
 
 	ctx.multi = curl_multi_init();
 
-	if (thrd_create(&ctx.thread, worker, NULL) != thrd_success)
-		log_fatal("[http] failed to create a worker thread\n");
+	if (thrd_create(&ctx.thread, worker, NULL) != thrd_success) log_fatal("[http] failed to create a worker thread\n");
 
 	// TODO: curl_global_init_mem - pass memory functions.
 
@@ -133,43 +186,6 @@ void http_init(const allocator_t* alloc) {
 	log_info("[http] curl ssl: %d\n", (info->features & CURL_VERSION_SSL) == 1);
 	log_info("[http] curl zlib: %d\n", (info->features & CURL_VERSION_LIBZ) == 1);
 #endif
-}
-
-void http_get(const char* url, http_handler_t handler, void* payload) {
-	assert(url);
-	assert(handler);
-
-	CURL* h = create_easy(url);
-	curl_easy_setopt(h, CURLOPT_HTTPGET, 1);
-	add_to_multi(h);
-
-	cnd_signal(&ctx.got_work);
-}
-
-void http_post_form(const char* url, const http_form_part_t* parts, size_t count, http_handler_t handler, void* payload) {
-	assert(url);
-	assert(parts && count > 0);
-	assert(handler);
-
-	CURL* h = create_easy(url);
-	curl_easy_setopt(h, CURLOPT_HTTPPOST, 1);
-
-	curl_mime* m = curl_mime_init(h);
-	if (!m)
-		log_fatal("[http] failed to create mime data\n");
-
-	for (size_t i = 0; i < count; ++i) {
-		curl_mimepart* p = curl_mime_addpart(m);
-		curl_mime_name(p, parts[i].key, CURL_ZERO_TERMINATED);
-		curl_mime_data(p, parts[i].value, CURL_ZERO_TERMINATED);
-	}
-
-	curl_easy_setopt(h, CURLOPT_MIMEPOST, m);
-
-	add_to_multi(h);
-
-	// TODO: curl_mime_free(mime); after perform!
-	cnd_signal(&ctx.got_work);
 }
 
 void http_shutdown() {
@@ -186,4 +202,51 @@ void http_shutdown() {
 
 	curl_multi_cleanup(ctx.multi);
 	curl_global_cleanup();
+
+	pool_destroy(ctx.pending);
+}
+
+void http_get(const char* url, http_handler_t handler, void* payload) {
+	assert(url);
+	assert(handler);
+
+	pending_t* p       = create_pending();
+	p->handler         = handler;
+	p->handler_payload = payload;
+
+	CURL* h = create_easy(url, p);
+	curl_easy_setopt(h, CURLOPT_HTTPGET, 1);
+	add_to_multi(h);
+
+	cnd_signal(&ctx.got_work);
+}
+
+void http_post_form(const char* url, const http_form_part_t* parts, size_t count, http_handler_t handler, void* payload) {
+	assert(url);
+	assert(parts && count > 0);
+	assert(handler);
+
+	pending_t* p       = create_pending();
+	p->handler         = handler;
+	p->handler_payload = payload;
+
+	CURL* h = create_easy(url, p);
+	curl_easy_setopt(h, CURLOPT_HTTPPOST, 1);
+
+	curl_mime* m = curl_mime_init(h);
+	if (!m) log_fatal("[http] failed to create mime data\n");
+
+	p->mime = m;
+
+	for (size_t i = 0; i < count; ++i) {
+		curl_mimepart* p = curl_mime_addpart(m);
+		curl_mime_name(p, parts[i].key, CURL_ZERO_TERMINATED);
+		curl_mime_data(p, parts[i].value, CURL_ZERO_TERMINATED);
+	}
+
+	curl_easy_setopt(h, CURLOPT_MIMEPOST, m);
+
+	add_to_multi(h);
+
+	cnd_signal(&ctx.got_work);
 }
