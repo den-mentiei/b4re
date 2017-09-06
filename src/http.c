@@ -29,6 +29,7 @@ typedef struct {
 static struct {
 	mtx_t multi_lock;
 	CURLM* multi;
+	CURLSH* share;
 
 	cnd_t got_work;
 	bool stop_worker;
@@ -136,6 +137,7 @@ static CURL* create_easy(const char* url, pending_t* r) {
 #if DEBUG
 	/* curl_easy_setopt(h, CURLOPT_VERBOSE, 1); */
 #endif
+	curl_easy_setopt(h, CURLOPT_SHARE, ctx.share);
 
 	curl_easy_setopt(h, CURLOPT_URL, url);
 	// Enables all supported built-in compressions.
@@ -174,6 +176,10 @@ void http_init(allocator_t* alloc) {
 	if (e != CURLE_OK) log_fatal("[http] failed to init curl\n");
 
 	ctx.multi = curl_multi_init();
+	ctx.share = curl_share_init();
+
+	curl_share_setopt(ctx.share, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE);
+	curl_share_setopt(ctx.share, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
 
 	if (thrd_create(&ctx.thread, worker, NULL) != thrd_success) log_fatal("[http] failed to create a worker thread\n");
 
@@ -201,6 +207,8 @@ void http_shutdown() {
 	mtx_destroy(&ctx.multi_lock);
 
 	curl_multi_cleanup(ctx.multi);
+	curl_share_cleanup(ctx.share);
+
 	curl_global_cleanup();
 
 	pool_destroy(ctx.pending);
