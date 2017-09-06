@@ -229,9 +229,12 @@ void http_get(const char* url, http_handler_t handler, void* payload) {
 	cnd_signal(&ctx.got_work);
 }
 
+void http_post(const char* url, http_handler_t handler, void* payload) {
+	http_post_form(url, NULL, 0, handler, payload);
+}
+
 void http_post_form(const char* url, const http_form_part_t* parts, size_t count, http_handler_t handler, void* payload) {
 	assert(url);
-	assert(parts && count > 0);
 	assert(handler);
 
 	pending_t* p       = create_pending();
@@ -239,20 +242,24 @@ void http_post_form(const char* url, const http_form_part_t* parts, size_t count
 	p->handler_payload = payload;
 
 	CURL* h = create_easy(url, p);
-	curl_easy_setopt(h, CURLOPT_HTTPPOST, 1);
+	curl_easy_setopt(h, CURLOPT_POST, 1);
 
-	curl_mime* m = curl_mime_init(h);
-	if (!m) log_fatal("[http] failed to create mime data\n");
+	if (parts && count > 0) {
+		curl_mime* m = curl_mime_init(h);
+		if (!m) log_fatal("[http] failed to create mime data\n");
 
-	p->mime = m;
+		p->mime = m;
 
-	for (size_t i = 0; i < count; ++i) {
-		curl_mimepart* p = curl_mime_addpart(m);
-		curl_mime_name(p, parts[i].key, CURL_ZERO_TERMINATED);
-		curl_mime_data(p, parts[i].value, CURL_ZERO_TERMINATED);
+		for (size_t i = 0; i < count; ++i) {
+			curl_mimepart* p = curl_mime_addpart(m);
+			curl_mime_name(p, parts[i].key, CURL_ZERO_TERMINATED);
+			curl_mime_data(p, parts[i].value, CURL_ZERO_TERMINATED);
+		}
+
+		curl_easy_setopt(h, CURLOPT_MIMEPOST, m);
+	} else {
+		curl_easy_setopt(h, CURLOPT_POSTFIELDSIZE, 0);
 	}
-
-	curl_easy_setopt(h, CURLOPT_MIMEPOST, m);
 
 	add_to_multi(h);
 

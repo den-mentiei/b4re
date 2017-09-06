@@ -5,28 +5,29 @@
 #include "log.h"
 #include "http.h"
 
-static bool login;
+static int state;
 
 static void test_handler(const uint8_t* data, size_t size, void* payload) {
 	log_info(data);
 	log_info("\n");
-	login = true;
+	state++;
 }
 
 bool game_init(int32_t argc, const char* argv[]) {
-	/* http_get("https://google.com", test_handler, NULL); */
-
 	http_form_part_t form[] = {
 		{ "username", "den" },
 		{ "password", "den_pass" }
 	};
 
-	/* http_post_form("http://localhost:8080/api/login", form, 2); */
 	http_post_form("http://ancientlighthouse.com:8080/api/login", form, 2, test_handler, NULL);
 
-	while (!login) {};
+	while (state != 1) {};
 
 	http_get("http://ancientlighthouse.com:8080/api/state", test_handler, NULL);
+
+	while (state != 2) {};
+
+	http_post("http://ancientlighthouse.com:8080/api/logout", test_handler, NULL);
 
 	return true;
 }
