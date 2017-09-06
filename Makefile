@@ -9,7 +9,7 @@ PROJECT := $(PROJECT_DIR)/Makefile
 EXECUTABLE := $(TARGET_DIR)/entry
 
 $(EXECUTABLE): $(PROJECT) touch
-	@ cd $(PROJECT_DIR) && make --no-print-directory
+	@ cd $(PROJECT_DIR) && make
 
 $(PROJECT):
 	$(PREMAKE) gmake
