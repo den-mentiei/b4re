@@ -8,6 +8,6 @@ static void* std_realloc(void* ctx, void* p, size_t new_size) {
 
 static allocator_t main = {.realloc = std_realloc, .payload = NULL};
 
-const allocator_t* allocator_main() {
+allocator_t* allocator_main() {
 	return &main;
 }

@@ -11,4 +11,4 @@ typedef struct allocator_t {
 #define BR_REALLOC(a, p, ns) (a)->realloc((a)->payload, p, (ns));
 #define BR_FREE(a, p)        (a)->realloc((a)->payload, (p), 0);
 
-const allocator_t* allocator_main();
+allocator_t* allocator_main();
