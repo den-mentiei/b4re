@@ -9,45 +9,11 @@
 #include <tinycthread.h>
 
 #include "allocator.h"
+#include "pool.h"
 #include "log.h"
 
 // https://curl.haxx.se/libcurl/c/CURLOPT_PRIVATE.html
-// https://curl.haxx.se/libcurl/c/curl_multi_timeout.html
 	
-/* // TODO: assert that it's a power of 2. */
-/* #define MAX_REQUESTS 32 */
-
-/* typedef struct { */
-/* 	char pad; */
-/* } request_t; */
-
-/* typedef struct { */
-/* 	request_t data[MAX_REQUESTS]; */
-/* 	size_t read; */
-/* 	size_t write; */
-/* } request_ringbuf_t; */
-
-/* static bool is_full(const request_ringbuf_t* rb) { */
-/* 	return rb->read + MAX_REQUESTS == rb->write; */
-/* } */
-
-/* static size_t pending_requests(const request_ringbuf_t* rb) { */
-/* 	return rb->write - rb->read; */
-/* } */
-
-/* static request_t* write_request(request_ringbuf_t* rb) { */
-/* 	assert(!is_full(rb)); */
-/* 	request_t* r = &rb->data[rb->write & (MAX_REQUESTS - 1)]; */
-/* 	rb->write++; */
-/* 	return r; */
-/* } */
-
-/* static void read_request(request_ringbuf_t* rb, request_t* r) { */
-/* 	assert(pending_requests(rb) > 0); */
-/* 	memcpy(r, &rb->data[rb->read & (MAX_REQUESTS - 1)], sizeof(request_t)); */
-/* 	rb->read++; */
-/* } */
-
 static struct {
 	mtx_t multi_lock;
 	CURLM* multi;
@@ -94,9 +60,7 @@ static int worker(void* arg) {
 
 			cnd_timedwait(&ctx.got_work, &ctx.multi_lock, &t);
 		} else {
-			log_info("[http] worker will sleep til next reqest\n");
 			cnd_wait(&ctx.got_work, &ctx.multi_lock);
-			log_info("[http] worker awaken!\n");
 		}
 
 		exit = ctx.stop_worker;
@@ -107,6 +71,37 @@ static int worker(void* arg) {
 	log_info("[http] worker dies\n");
 
 	return 0;
+}
+
+static CURL* create_easy(const char* url) {
+	assert(ctx.multi);
+
+	CURL* h = curl_easy_init();
+	if (!h)
+		log_fatal("failed to create an easy curl handle\n");
+
+#if DEBUG
+	/* curl_easy_setopt(h, CURLOPT_HEADER, 1); */
+	/* curl_easy_setopt(h, CURLOPT_VERBOSE, 1); */
+#endif
+
+	curl_easy_setopt(h, CURLOPT_URL, url);
+	// Enables all supported built-in compressions.
+	curl_easy_setopt(h, CURLOPT_ACCEPT_ENCODING, "");
+
+	return h;
+}
+
+static void add_to_multi(CURL* h) {
+	assert(h);
+
+	mtx_lock(&ctx.multi_lock);
+
+	CURLMcode err = curl_multi_add_handle(ctx.multi, h);
+	if (err != CURLM_OK)
+		log_fatal("[http] failed to create request - %s\n", curl_multi_strerror(err));
+
+	mtx_unlock(&ctx.multi_lock);
 }
 
 void http_init(const allocator_t* alloc) {
@@ -140,37 +135,10 @@ void http_init(const allocator_t* alloc) {
 #endif
 }
 
-static CURL* create_easy(const char* url) {
-	assert(ctx.multi);
+void http_get(const char* url, http_handler_t handler, void* payload) {
 	assert(url);
+	assert(handler);
 
-	CURL* h = curl_easy_init();
-	if (!h)
-		log_fatal("failed to create an easy curl handle\n");
-
-#if DEBUG
-	curl_easy_setopt(h, CURLOPT_HEADER, 1);
-	/* curl_easy_setopt(h, CURLOPT_VERBOSE, 1); */
-#endif
-
-	curl_easy_setopt(h, CURLOPT_URL, url);
-
-	return h;
-}
-
-static void add_to_multi(CURL* h) {
-	assert(h);
-
-	mtx_lock(&ctx.multi_lock);
-
-	CURLMcode err = curl_multi_add_handle(ctx.multi, h);
-	if (err != CURLM_OK)
-		log_fatal("[http] failed to create request - %s\n", curl_multi_strerror(err));
-
-	mtx_unlock(&ctx.multi_lock);
-}
-
-void http_get(const char* url) {
 	CURL* h = create_easy(url);
 	curl_easy_setopt(h, CURLOPT_HTTPGET, 1);
 	add_to_multi(h);
@@ -178,9 +146,10 @@ void http_get(const char* url) {
 	cnd_signal(&ctx.got_work);
 }
 
-void http_post_form(const char* url, const http_form_part_t* parts, size_t count) {
-	assert(parts);
-	assert(count > 0);
+void http_post_form(const char* url, const http_form_part_t* parts, size_t count, http_handler_t handler, void* payload) {
+	assert(url);
+	assert(parts && count > 0);
+	assert(handler);
 
 	CURL* h = create_easy(url);
 	curl_easy_setopt(h, CURLOPT_HTTPPOST, 1);
