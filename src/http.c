@@ -122,10 +122,13 @@ static size_t response_write(const char* ptr, size_t size, size_t nmemb, void* u
 	return bytes;
 }
 
-static pending_t* create_pending() {
+static pending_t* create_pending(http_handler_t handler, void* payload) {
 	pending_t* p = pool_alloc(ctx.pending);
 	memset(p, 0, sizeof(pending_t));
-	p->free = MAX_RESPONSE_SIZE - sizeof(pending_t);
+
+	p->handler		   = handler;
+	p->handler_payload = payload;
+	p->free			   = MAX_RESPONSE_SIZE - sizeof(pending_t);
 }
 
 static CURL* create_easy(const char* url, pending_t* r) {
@@ -218,9 +221,7 @@ void http_get(const char* url, http_handler_t handler, void* payload) {
 	assert(url);
 	assert(handler);
 
-	pending_t* p       = create_pending();
-	p->handler         = handler;
-	p->handler_payload = payload;
+	pending_t* p = create_pending(handler, payload);
 
 	CURL* h = create_easy(url, p);
 	curl_easy_setopt(h, CURLOPT_HTTPGET, 1);
@@ -237,9 +238,7 @@ void http_post_form(const char* url, const http_form_part_t* parts, size_t count
 	assert(url);
 	assert(handler);
 
-	pending_t* p       = create_pending();
-	p->handler         = handler;
-	p->handler_payload = payload;
+	pending_t* p = create_pending(handler, payload);
 
 	CURL* h = create_easy(url, p);
 	curl_easy_setopt(h, CURLOPT_POST, 1);
