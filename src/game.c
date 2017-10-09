@@ -8,7 +8,7 @@
 static int state;
 
 static void test_handler(const uint8_t* data, size_t size, void* payload) {
-	log_info(data);
+	log_info((const char*)data);
 	log_info("\n");
 	state++;
 }

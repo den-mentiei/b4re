@@ -55,8 +55,6 @@ static void free_easy_handle(CURL* h) {
 }
 
 static int worker(void* arg) {
-	int running;
-
 	mtx_lock(&ctx.multi_lock);
 	cnd_wait(&ctx.got_work, &ctx.multi_lock);
 	// lock is held now.
@@ -129,6 +127,8 @@ static pending_t* create_pending(http_handler_t handler, void* payload) {
 	p->handler		   = handler;
 	p->handler_payload = payload;
 	p->free			   = MAX_RESPONSE_SIZE - sizeof(pending_t);
+
+	return p;
 }
 
 static CURL* create_easy(const char* url, pending_t* r) {

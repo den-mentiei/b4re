@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-typedef struct allocator_t allocator_t;
+struct allocator_t;
 
 // TODO: status/headers/etc?
 typedef void (*http_handler_t)(const uint8_t* data, size_t size, void* payload);
@@ -14,7 +14,7 @@ typedef struct http_form_part_t {
 	const char* value;
 } http_form_part_t;
 
-void http_init(allocator_t* alloc);
+void http_init(struct allocator_t* alloc);
 
 void http_shutdown();
 

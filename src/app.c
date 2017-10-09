@@ -3,9 +3,6 @@
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
 
-typedef struct allocator_t allocator_t;
-static void test(const allocator_t* a) {}
-
 #include "game.h"
 #include "http.h"
 #include "allocator.h"

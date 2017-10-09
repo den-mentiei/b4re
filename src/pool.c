@@ -7,10 +7,10 @@
 
 // TODO: Implement it!
 
-typedef struct pool_t {
+struct pool_t {
 	size_t size;
 	allocator_t* alloc;
-} pool_t;
+};
 
 pool_t* pool_create(size_t size, size_t initial_capacity, allocator_t* alloc) {
 	assert(size);
