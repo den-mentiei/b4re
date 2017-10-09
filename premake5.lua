@@ -15,13 +15,11 @@ project "entry"
 	targetdir(path.join(TARGET_DIR, "%{cfg.buildcfg}"))
 
 	includedirs { "src", "3rdparty/bgfx/include" }
-	libdirs { "3rdparty/bgfx/lib/linux_x64" }
 
 	flags { "FatalWarnings" }
 
 	files {
 		"src/**.h", "src/**.c",
-
 		"3rdparty/tinycthread/*.c"
 	}
 
@@ -30,9 +28,7 @@ project "entry"
 		"3rdparty/tinycthread"
 	}
 
-	libdirs { "3rdparty/curl/lib/linux_x64" }
-
-	links { "curlDebug" }
+	-- links { "curlDebug" }
 
 	filter "configurations:debug"
 		defines { "DEBUG" }
@@ -45,8 +41,19 @@ project "entry"
 	filter "system:windows"
 		defines { "BR_PLATFORM_WIN" }
 
+	filter "system:macosx"
+		defines { "BR_PLATFORM_MACOS" }
+
+		files { "src/**.m" }
+
 	filter "system:linux"
 		defines { "BR_PLATFORM_LINUX" }
+
+		libdirs {
+			"3rdparty/curl/lib/linux_x64",
+			"3rdparty/bgfx/lib/linux_x64"
+		}
+
 		links { 
 			"bgfxRelease",
 			"bimgRelease",
