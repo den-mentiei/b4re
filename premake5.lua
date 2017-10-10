@@ -55,7 +55,7 @@ project "entry"
 			"3rdparty/curl/lib/macosx_x64"
 		}
 
-		files { "src/**.m" }
+		files { "src/**.m", "src/Info.plist" }
 	
 		links {
 			"stdc++",
