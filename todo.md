@@ -1,1 +1,2 @@
 - unify macosx/osx/darwin/macos everywhere in build stuff
+- add `premake5 xcode4` to makefile somehow. and xcodebuild probably.

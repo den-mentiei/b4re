@@ -1,12 +1,21 @@
-local BUILD_DIR = "./.build"
+local function get_os()
+	local mapping = {
+		["macosx"] = "darwin",
+		["linux"]  = "linux"
+	}
+	return mapping[_TARGET_OS]
+end
+
+local OS           = get_os()
+local BUILD_DIR    = "./.build"
 local PROJECTS_DIR = path.join(BUILD_DIR, "projects")
-local TARGET_DIR = path.join(BUILD_DIR, "bin", _TARGET_OS)
+local TARGET_DIR   = path.join(BUILD_DIR, "bin", OS)
 
 require "clang_format"
 
 workspace "b4re"
 	configurations { "debug", "release" }
-	location(path.join(PROJECTS_DIR, _TARGET_OS))
+	location(path.join(PROJECTS_DIR, OS))
 
 project "entry"
 	kind "WindowedApp"
