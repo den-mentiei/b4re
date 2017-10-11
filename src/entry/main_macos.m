@@ -4,15 +4,13 @@
 
 #include <stdbool.h>
 
-#include <tinycthread.h>
-
 #include "entry.h"
 #include "log.h"
 
 #include <bgfx/platform.h>
 
 static struct {
-	volatile bool should_close;
+	bool should_close;
 } s_ctx;
 
 ////////////////////////////////
@@ -56,15 +54,6 @@ static entry_window_info_t s_window;
 
 const entry_window_info_t* entry_get_window() {
 	return &s_window;
-}
-
-static int worker(void* arg) {
-	// TODO:
-	while (!s_ctx.should_close) {
-		entry_tick(1000/60.0f);
-	}
-	
-	return 0;
 }
 
 int main(int argc, const char* argv[]) {
@@ -131,39 +120,27 @@ int main(int argc, const char* argv[]) {
 		s_window.window = window;
 	    s_window.width = w;
 	    s_window.height = h;
-
-		//bgfx_render_frame(-1);
+	
+		// Forces bgfx to operate in single-threaded mode. TODO: proper threading.
+		bgfx_render_frame(-1);
 		
-		//if (!entry_init(argc, argv))
+		if (!entry_init(argc, argv))
 			// TODO: cleanup.
-			//return 1;
+			return 1;
 
-		//thrd_t t;
-		//if (thrd_create(&t, worker, NULL) != thrd_success) log_fatal("[entry] failed to create game thread.\n");
-		
 		while (!s_ctx.should_close) {
-			//bgfx_render_frame(-1);
+			entry_tick(1000 / 60.0f);
+
+			bgfx_render_frame(-1);
 			
-			// TODO: call bgfx.
 			NSEvent* e;
 			while ((e = peek_event())) {
 				[NSApp sendEvent:e];
 				[NSApp updateWindows];
 			}
 		}
-		
-		//thrd_join(t, NULL);
-		/*
-	    if (!entry_init(argc, argv))
-		    // TODO: cleanup.
-		    return 1;
-
-		while (!entry_tick(1000/60.0f) && !s_ctx.should_close) {
-			// TODO: process events.
-		}
 
 	    entry_shutdown();
-	 */
 	    return 0;
 	}
 }
