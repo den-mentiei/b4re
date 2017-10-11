@@ -8,7 +8,7 @@ typedef struct allocator_t {
 } allocator_t;
 
 #define BR_ALLOC(a, s)       (a)->realloc((a)->payload, NULL, (s));
-#define BR_REALLOC(a, p, ns) (a)->realloc((a)->payload, p, (ns));
-#define BR_FREE(a, p)        (a)->realloc((a)->payload, (p), 0);
+#define BR_REALLOC(a, p, ns) (a)->realloc((a)->payload, (p),  (ns));
+#define BR_FREE(a, p)        (a)->realloc((a)->payload, (p),  0);
 
 allocator_t* allocator_main();

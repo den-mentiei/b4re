@@ -44,6 +44,13 @@ clang_complete.generate = function(prj)
 				end
 			end
 
+			for _, includedir in ipairs(cfg.sysincludedirs) do
+				if not marked[includedir] then
+					f:write("-I" .. includedir .. "\n")
+					marked[includedir] = includedir
+				end
+			end
+
 			for _, buildoption in ipairs(cfg.buildoptions) do
 				if not marked[buildoption] then
 					f:write(buildoption .. "\n")
