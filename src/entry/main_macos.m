@@ -118,8 +118,8 @@ int main(int argc, const char* argv[]) {
 		
 		[window setTitle:@"b4re"];
 		[window makeKeyAndOrderFront:window];
-		//[window setAcceptsMouseMovedEvents:YES];
-		[window setBackgroundColor:[NSColor blackColor]];
+		[window setAcceptsMouseMovedEvents:YES];
+		[window setMovableByWindowBackground:YES];
 		
 		/*NSView * content_view = [window contentView];
 		[content_view setWantsBestResolutionOpenGLSurface:YES];*/
@@ -132,23 +132,27 @@ int main(int argc, const char* argv[]) {
 	    s_window.width = w;
 	    s_window.height = h;
 
-		bgfx_render_frame(-1);
+		//bgfx_render_frame(-1);
 		
-		if (!entry_init(argc, argv))
+		//if (!entry_init(argc, argv))
 			// TODO: cleanup.
-			return 1;
+			//return 1;
 
-		thrd_t t;
-		if (thrd_create(&t, worker, NULL) != thrd_success) log_fatal("[entry] failed to create game thread.\n");
+		//thrd_t t;
+		//if (thrd_create(&t, worker, NULL) != thrd_success) log_fatal("[entry] failed to create game thread.\n");
 		
 		while (!s_ctx.should_close) {
-			bgfx_render_frame(-1);
+			//bgfx_render_frame(-1);
 			
 			// TODO: call bgfx.
-			while (peek_event()) {}
+			NSEvent* e;
+			while ((e = peek_event())) {
+				[NSApp sendEvent:e];
+				[NSApp updateWindows];
+			}
 		}
 		
-		thrd_join(t, NULL);
+		//thrd_join(t, NULL);
 		/*
 	    if (!entry_init(argc, argv))
 		    // TODO: cleanup.
