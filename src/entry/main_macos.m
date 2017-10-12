@@ -131,8 +131,6 @@ int main(int argc, const char* argv[]) {
 		while (!s_ctx.should_close) {
 			entry_tick(1000 / 60.0f);
 
-			bgfx_render_frame(-1);
-			
 			NSEvent* e;
 			while ((e = peek_event())) {
 				[NSApp sendEvent:e];

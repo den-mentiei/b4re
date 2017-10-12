@@ -26,4 +26,6 @@ void render_init() {
 }
 
 void render_shutdown() {
+	bgfx_destroy_program(s_ctx.program);
+	bgfx_destroy_uniform(s_ctx.u_texture);
 }
