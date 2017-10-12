@@ -27,7 +27,8 @@ project "entry"
 
 	files {
 		"src/**.h", "src/**.c",
-		"3rdparty/tinycthread/*.c"
+		"3rdparty/tinycthread/*.c",
+		"3rdparty/gb/*.c"
 	}
 
 	includedirs { "src" }
@@ -35,7 +36,8 @@ project "entry"
 	sysincludedirs {
 		"3rdparty/bgfx/include",
 		"3rdparty/curl/include",
-		"3rdparty/tinycthread"
+		"3rdparty/tinycthread",
+		"3rdparty/gb"
 	}
 
 	links {
