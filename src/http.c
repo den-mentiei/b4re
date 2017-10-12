@@ -89,7 +89,7 @@ static int worker(void* arg) {
 			t.tv_nsec = (timeout % 1000) * 1000000;
 
 			cnd_timedwait(&ctx.got_work, &ctx.multi_lock, &t);
-		} else {
+		} else if (!ctx.stop_worker) {
 			cnd_wait(&ctx.got_work, &ctx.multi_lock);
 		}
 
