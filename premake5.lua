@@ -28,7 +28,8 @@ project "entry"
 	files {
 		"src/**.h", "src/**.c",
 		"3rdparty/tinycthread/*.c",
-		"3rdparty/gb/*.c"
+		"3rdparty/gb/*.c",
+		"3rdparty/stb/*.c"
 	}
 
 	includedirs { "src" }
@@ -37,7 +38,8 @@ project "entry"
 		"3rdparty/bgfx/include",
 		"3rdparty/curl/include",
 		"3rdparty/tinycthread",
-		"3rdparty/gb"
+		"3rdparty/gb",
+		"3rdparty/stb"
 	}
 
 	links {
