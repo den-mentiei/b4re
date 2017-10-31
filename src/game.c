@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 
-
 #include "render.h"
 #include "log.h"
 #include "http.h"
