@@ -33,7 +33,7 @@ HEADER_TEMPLATE = r"""#pragma once
 
 #include <stddef.h>
 
-typedef struct {
+typedef struct sprite_t {
 	const char* name;
     size_t      index;
 } sprite_t;

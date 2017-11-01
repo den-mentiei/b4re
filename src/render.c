@@ -36,6 +36,10 @@ void render_init() {
 	assets_init();
 }
 
+void render_sprite(sprite_t* s, float x, float y) {
+
+}
+
 void render_shutdown() {
 	assets_shutdown();
 

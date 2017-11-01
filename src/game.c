@@ -6,6 +6,8 @@
 #include "log.h"
 #include "http.h"
 
+#include "generated/assets.h"
+
 /* static int state; */
 
 /* static void test_handler(const uint8_t* data, size_t size, void* payload) { */

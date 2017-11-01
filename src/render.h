@@ -10,4 +10,7 @@ typedef struct {
 
 void render_init();
 
+struct sprite_t;
+void render_sprite(struct sprite_t* s, float x, float y);
+
 void render_shutdown();
