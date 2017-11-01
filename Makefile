@@ -19,9 +19,10 @@ PROJECT         := $(PROJECT_DIR)/Makefile
 EXECUTABLE      := $(TARGET_DIR)/entry
 SHADERS         := $(wildcard src/shaders/*.shader)
 SHADER_INCLUDES := "3rdparty/bgfx/include"
+
 # APP
 
-$(EXECUTABLE): $(PROJECT) touch
+$(EXECUTABLE): $(PROJECT) touch assets
 	@ cd $(PROJECT_DIR) && make
 
 $(PROJECT): shaders
@@ -33,8 +34,9 @@ touch:
 
 clean:
 	rm -rf .build
-	rm -f src/shaders/*.h
-	rm -f .clang_complete
+	rm -f  .clang_complete
+	rm -f  src/shaders/*.h
+	rm -rf src/generated
 
 build: $(EXECUTABLE)
 
@@ -43,6 +45,12 @@ run: $(EXECUTABLE)
 
 debug: $(EXECUTABLE)
 	@ $(DEBUG) $(EXECUTABLE)
+
+# ASSETS
+
+assets:
+	@ mkdir -p src/generated
+	./scripts/sprites.py assets src/generated
 
 # SHADERS
 
@@ -73,4 +81,4 @@ shaders: $(BUILT_SHADERS_VS) $(BUILT_SHADERS_FS)
 
 print-%  : ; @echo $* = $($*)
 
-.PHONY: completion touch clean build run debug shaders
+.PHONY: completion touch clean build run debug shaders assets

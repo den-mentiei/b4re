@@ -2,10 +2,11 @@
 
 #include <stdio.h>
 
-
 #include "render.h"
 #include "log.h"
 #include "http.h"
+
+#include "generated/assets.h"
 
 /* static int state; */
 

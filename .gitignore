@@ -1,3 +1,4 @@
 .build/
-src/shaders/*.h
 .clang_complete
+src/shaders/*.h
+src/generated
