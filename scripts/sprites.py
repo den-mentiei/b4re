@@ -54,11 +54,13 @@ IMPLEMENTATION_TEMPLATE = r"""// It is auto-generated :)
 
 #include "assets.h"
 
-static struct {
-    const char* path;
-} s_pathes[] = {
+#include <stddef.h>
+#include <stb_image.h>
+#include <bgfx/bgfx.h>
+
+static const char* s_pathes[{{path_count}}] = {
     {{#pathes}}
-    { "{{.}}" },
+    "{{.}}",
     {{/pathes}}
 };
 
@@ -68,12 +70,34 @@ static sprites_t s_sprites = {
 {{/root.groups}}
 };
 
+static struct {
+	bgfx_texture_handle_t handle;
+    int w, h;
+} s_textures[{{path_count}}] = {0};
+
 void assets_init() {
-    // TODO:
+	uint32_t flags = BGFX_TEXTURE_NONE
+			| BGFX_TEXTURE_U_CLAMP | BGFX_TEXTURE_V_CLAMP
+			| BGFX_TEXTURE_MAG_POINT | BGFX_TEXTURE_MIN_POINT;
+
+    for (size_t i = 0; i < {{path_count}}; ++i) {
+		int w = 0, h = 0, comp = 0;
+		stbi_uc* bytes = stbi_load(s_pathes[i], &w, &h, &comp, 4);
+
+		if (bytes) {
+			// TODO: do we really need a copy here?
+			s_textures[i].handle = bgfx_create_texture_2d(w, h, false, 1, BGFX_TEXTURE_FORMAT_RGBA8, flags, bgfx_copy(bytes, w * h * 4));
+			s_textures[i].w      = w;
+			s_textures[i].h      = h;
+			stbi_image_free(bytes);
+		}
+    }
 }
 
 void assets_shutdown() {
-    // TODO:
+    for (size_t i = 0; i < {{path_count}}; ++i) {
+		bgfx_destroy_texture(s_textures[i].handle);
+    }
 }
 """
 
@@ -152,8 +176,9 @@ def main():
 	indexed = update_sprites(groups, make_index_gatherer(ps))
 
 	data = {
-		'root':   indexed,
-		'pathes': ps
+		'root':       indexed,
+		'pathes':     ps,
+		'path_count': len(ps)
 	}
 	# dump(data)
 

@@ -32,9 +32,14 @@ void render_init() {
 	static uint32_t white = 1;
 	s_ctx.white_texture = bgfx_create_texture_2d(1, 1, false, 0, BGFX_TEXTURE_FORMAT_RGBA8, BGFX_TEXTURE_U_MIRROR | BGFX_TEXTURE_W_MIRROR | BGFX_TEXTURE_MAG_POINT | BGFX_TEXTURE_MIN_POINT, bgfx_make_ref(&white, sizeof(white)));
 	bgfx_set_texture_name(s_ctx.white_texture, "dummy white texture");
+
+	assets_init();
 }
 
 void render_shutdown() {
-	bgfx_destroy_program(s_ctx.program);
+	assets_shutdown();
+
+	bgfx_destroy_texture(s_ctx.white_texture);
 	bgfx_destroy_uniform(s_ctx.u_texture);
+	bgfx_destroy_program(s_ctx.program);
 }
