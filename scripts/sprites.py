@@ -140,15 +140,20 @@ def dump(x):
 	p.pprint(x)
 
 def main():
-	if len(sys.argv) != 2:
-		raise Exception('pass an argument that is a directory name to scan for assets in')
+	if len(sys.argv) != 3:
+		print('Usage: ./sprites.py <assets_dir> <output_dir>')
+		exit(1)
 
-	sprites = build_sprites(traverse_assets(sys.argv[1], is_sprite_texture))
+	assets  = sys.argv[1]
+	output  = sys.argv[2]
+	header  = os.path.join(output, 'assets.h')
+	code    = os.path.join(output, 'assets.c')
+	sprites = build_sprites(traverse_assets(assets, is_sprite_texture))
 
 	r = pystache.Renderer(partials=PARTIALS)
-	with open('assets.h', 'w') as f:
+	with open(header, 'w') as f:
 		f.write(r.render(HEADER_TEMPLATE, sprites))
-	with open('assets.c', 'w') as f:
+	with open(code, 'w') as f:
 		f.write(r.render(IMPLEMENTATION_TEMPLATE, sprites))
 
 if __name__ == '__main__':
