@@ -5,28 +5,7 @@
 #include "shaders/tex_color_vs.h"
 #include "shaders/tex_color_fs.h"
 
-typedef struct {
-	const char* name;
-	const char* texture_path;
-
-	bgfx_texture_handle_t h;
-} sprite_t;
-
-struct {
-	const char* name;
-	struct {
-		const char* name;
-		sprite_t s1;
-		sprite_t s2;
-	} sub;
-} s_root = {
-	.name = "root",
-	.sub = {
-		.name = "subgroup",
-		.s1 = {"s1","s1"},
-		.s2 = {"s2","s2"},
-	}
-};
+#include "generated/assets.h"
 
 static struct {
 	bgfx_vertex_decl_t    vdecl;
