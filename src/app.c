@@ -49,6 +49,8 @@ bool entry_init(int32_t argc, const char* argv[]) {
 bool entry_tick(float dt) {
 	check_resized();
 
+	bool should_continue = game_update(s_ctx.w, s_ctx.h, dt);
+
 	bgfx_set_view_rect(0, 0, 0, s_ctx.w, s_ctx.h);
 	bgfx_touch(0);
 
@@ -56,9 +58,11 @@ bool entry_tick(float dt) {
 	bgfx_dbg_text_printf(0, 0, 0x4f, "b4re is alive and kicking");
 	bgfx_dbg_text_printf(0, 1, 0x6f, "dt: %0.4fms", dt);
 
+	game_render(s_ctx.w, s_ctx.h, dt);
+
 	bgfx_frame(false);
 
-	return game_update(s_ctx.w, s_ctx.h, dt);
+	return should_continue;
 }
 
 void entry_shutdown() {
