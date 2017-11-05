@@ -1,5 +1,7 @@
 #include "render.h"
 
+#include <string.h> // memcpy
+
 #include <bgfx/bgfx.h>
 
 #include "shaders/tex_color_vs.h"
@@ -13,6 +15,16 @@ static struct {
 	bgfx_uniform_handle_t u_texture;
 	bgfx_texture_handle_t white_texture;
 } s_ctx = {0};
+
+const uint64_t DEFAULT_STATE_2D =
+	(0
+	 | BGFX_STATE_RGB_WRITE
+	 | BGFX_STATE_ALPHA_WRITE
+	 | BGFX_STATE_DEPTH_TEST_LESS
+	 | BGFX_STATE_DEPTH_WRITE
+	 | BGFX_STATE_MSAA
+	 | BGFX_STATE_CULL_CCW
+	 );
 
 void render_init() {
 	bgfx_vertex_decl_begin(&s_ctx.vdecl, BGFX_RENDERER_TYPE_NOOP);
@@ -29,15 +41,46 @@ void render_init() {
 
 	s_ctx.u_texture = bgfx_create_uniform("s_texture", BGFX_UNIFORM_TYPE_INT1, 1);
 
-	static uint32_t white = 1;
+	static uint32_t white = 0xFFFFFFFF;
 	s_ctx.white_texture = bgfx_create_texture_2d(1, 1, false, 0, BGFX_TEXTURE_FORMAT_RGBA8, BGFX_TEXTURE_U_MIRROR | BGFX_TEXTURE_W_MIRROR | BGFX_TEXTURE_MAG_POINT | BGFX_TEXTURE_MIN_POINT, bgfx_make_ref(&white, sizeof(white)));
 	bgfx_set_texture_name(s_ctx.white_texture, "dummy white texture");
 
 	assets_init();
 }
 
-void render_sprite(sprite_t* s, float x, float y) {
+// 0 1
+// 3 2
+static render_vertex_t s_vertices[] = {
+	{ -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 0xFFFFFFFF },
+	{  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0xFFFFFFFF },
+	{  0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF },
+	{ -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0xFFFFFFFF },
+};
 
+static uint16_t s_indices[] = {
+	0, 1, 2,
+	2, 3, 0
+};
+
+void render_sprite(const sprite_t* s, float x, float y) {
+	const size_t NUM_INDICES =  sizeof(s_indices) / sizeof(s_indices[0]);
+	const size_t NUM_VERTICES = sizeof(s_vertices) / sizeof(s_vertices[0]);
+
+	bgfx_transient_vertex_buffer_t tvb;
+	bgfx_transient_index_buffer_t  tib;
+
+	bgfx_alloc_transient_buffers(&tvb, &s_ctx.vdecl, NUM_VERTICES, &tib, NUM_INDICES);
+
+	memcpy(tvb.data, s_vertices, tvb.size);
+	memcpy(tib.data, s_indices, tib.size);
+
+	bgfx_texture_handle_t tex = assets_sprites_texture(s->index);
+
+	bgfx_set_transient_vertex_buffer(0, &tvb, 0, NUM_VERTICES);
+	bgfx_set_transient_index_buffer(&tib, 0, NUM_INDICES);
+	bgfx_set_texture(0, s_ctx.u_texture, tex, UINT32_MAX);
+	bgfx_set_state(DEFAULT_STATE_2D, 0);
+	bgfx_submit(0, s_ctx.program, 0, false);
 }
 
 void render_shutdown() {

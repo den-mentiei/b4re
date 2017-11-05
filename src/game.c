@@ -42,7 +42,7 @@ bool game_update(uint16_t width, uint16_t height, float dt) {
 }
 
 void game_render(uint16_t width, uint16_t height, float dt) {
-
+	render_sprite(&assets_sprites()->assets.travel_map.atlas_tiled_grass, 0.0f, 0.0f);
 }
 
 void game_shutdown() {

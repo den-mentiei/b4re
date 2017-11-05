@@ -35,6 +35,8 @@ bool entry_init(int32_t argc, const char* argv[]) {
 
 	bgfx_set_platform_data(&pd);
 
+
+	/* bgfx_init(BGFX_RENDERER_TYPE_METAL, BGFX_PCI_ID_NONE, 0, NULL, NULL); */
 	bgfx_init(BGFX_RENDERER_TYPE_COUNT, BGFX_PCI_ID_NONE, 0, NULL, NULL);
 	bgfx_reset(s_ctx.w, s_ctx.h, s_ctx.reset);
 	bgfx_set_debug(BGFX_DEBUG_TEXT);

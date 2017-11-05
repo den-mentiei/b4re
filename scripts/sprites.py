@@ -31,6 +31,9 @@ HEADER_TEMPLATE = r"""#pragma once
 
 // It is auto-generated :)
 
+// TODO: remove it.
+#include <bgfx/bgfx.h>
+
 #include <stddef.h>
 
 typedef struct sprite_t {
@@ -46,6 +49,9 @@ typedef struct {
 
 void assets_init();
 void assets_shutdown();
+
+// TODO: remove it.
+bgfx_texture_handle_t assets_sprites_texture(size_t i);
 
 const sprites_t* assets_sprites();
 """
@@ -92,6 +98,14 @@ void assets_init() {
 			stbi_image_free(bytes);
 		}
     }
+}
+
+const sprites_t* assets_sprites() {
+    return &s_sprites;
+}
+
+bgfx_texture_handle_t assets_sprites_texture(size_t i) {
+    return s_textures[i].handle;
 }
 
 void assets_shutdown() {

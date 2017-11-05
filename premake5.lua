@@ -79,7 +79,8 @@ project "entry"
 			"Security.framework",
 			"AppKit.framework",
 			"QuartzCore.framework",
-			"Metal.framework"
+			"Metal.framework",
+			"OpenGL.framework"
 		}
 
 	filter "system:linux"
