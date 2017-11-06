@@ -29,6 +29,10 @@ $(PROJECT): shaders
 	$(PREMAKE) gmake
 	$(PREMAKE) clang-complete
 
+# TODO: remove it.
+xcode:
+	$(PREMAKE) xcode4
+
 touch:
 	@ touch -c $(PROJECT)
 
@@ -81,4 +85,4 @@ shaders: $(BUILT_SHADERS_VS) $(BUILT_SHADERS_FS)
 
 print-%  : ; @echo $* = $($*)
 
-.PHONY: completion touch clean build run debug shaders assets
+.PHONY: completion touch clean build run debug shaders assets xcode
