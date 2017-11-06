@@ -10,6 +10,11 @@
 #include <bgfx/platform.h>
 
 static struct {
+	float mouse_x;
+	float mouse_y;
+	bool  mouse_left;
+	bool  mouse_right;
+
 	bool should_close;
 } s_ctx;
 
@@ -38,7 +43,7 @@ static struct {
 }
 @end
 
-NSEvent* peek_event()
+static NSEvent* peek_event()
 {
 	return [NSApp
 			nextEventMatchingMask:NSEventMaskAny
@@ -48,12 +53,75 @@ NSEvent* peek_event()
 			];
 }
 
+static void get_mouse_position(float* _x, float *_y) {
+	NSWindow* window         = [NSApp keyWindow];
+	NSRect    original_frame = [window frame];
+	NSPoint   location       = [window mouseLocationOutsideOfEventStream];
+	NSRect    adjust_frame   = [window contentRectForFrameRect: original_frame];
+
+	int x = location.x;
+	int y = (int)adjust_frame.size.height - (int)location.y;
+
+	if (x < 0) x = 0;
+	if (y < 0) y = 0;
+	if (x > (int)adjust_frame.size.width) x = (int)adjust_frame.size.width;
+	if (y > (int)adjust_frame.size.height) y = (int)adjust_frame.size.height;
+
+	*_x = x;
+	*_y = y;
+}
+
+static void on_event(NSEvent* e) {
+	if (!e) return;
+
+	NSEventType type = [e type];
+	switch (type) {
+	case NSEventTypeMouseMoved:
+	case NSEventTypeLeftMouseDragged:
+	case NSEventTypeRightMouseDragged:
+	case NSEventTypeOtherMouseDragged:
+		get_mouse_position(&s_ctx.mouse_x, &s_ctx.mouse_y);
+		break;
+
+	case NSEventTypeLeftMouseDown:
+		s_ctx.mouse_left = true;
+		break;
+	case NSEventTypeLeftMouseUp:
+		s_ctx.mouse_left = false;
+		break;
+
+	case NSEventTypeRightMouseDown:
+		s_ctx.mouse_right = true;
+		break;
+	case NSEventTypeRightMouseUp:
+		s_ctx.mouse_right = false;
+		break;
+
+	default:
+		break;
+	}
+}
+
 ////////////////////////////////
 
 static entry_window_info_t s_window;
 
 const entry_window_info_t* entry_get_window() {
 	return &s_window;
+}
+
+bool entry_mouse_pressed(entry_button_t b) {
+	if (b == ENTRY_BUTTON_LEFT) {
+		return s_ctx.mouse_left;
+	} else if (b == ENTRY_BUTTON_RIGHT) {
+		return s_ctx.mouse_right;
+	}
+	return false;
+}
+
+void entry_mouse_position(float* x, float* y) {
+	*x = s_ctx.mouse_x;
+	*y = s_ctx.mouse_y;
 }
 
 int main(int argc, const char* argv[]) {
@@ -133,6 +201,7 @@ int main(int argc, const char* argv[]) {
 
 			NSEvent* e;
 			while ((e = peek_event())) {
+				on_event(e);
 				[NSApp sendEvent:e];
 				[NSApp updateWindows];
 			}

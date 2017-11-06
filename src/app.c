@@ -4,6 +4,7 @@
 #include <bgfx/platform.h>
 #include <gb_math.h>
 
+#include "input.h"
 #include "game.h"
 #include "http.h"
 #include "allocator.h"
@@ -51,6 +52,7 @@ bool entry_init(int32_t argc, const char* argv[]) {
 bool entry_tick(float dt) {
 	check_resized();
 
+	input_update();
 	bool should_continue = game_update(s_ctx.w, s_ctx.h, dt);
 
 	bgfx_dbg_text_clear(0, false);

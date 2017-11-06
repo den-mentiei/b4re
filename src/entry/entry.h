@@ -15,6 +15,14 @@ typedef struct {
 
 const entry_window_info_t* entry_get_window();
 
+typedef enum {
+	ENTRY_BUTTON_LEFT = 0,
+	ENTRY_BUTTON_RIGHT,
+	ENTRY_BUTTON_COUNT
+} entry_button_t;
+bool entry_mouse_pressed(entry_button_t b);
+void entry_mouse_position(float* x, float* y);
+
 // Implemented by the user.
 
 bool entry_init(int32_t argc, const char* argv[]);

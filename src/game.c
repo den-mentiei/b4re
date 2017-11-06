@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "input.h"
 #include "render.h"
 #include "log.h"
 #include "http.h"
@@ -38,6 +39,14 @@ bool game_init(int32_t argc, const char* argv[]) {
 }
 
 bool game_update(uint16_t width, uint16_t height, float dt) {
+	float x, y;
+	input_position(&x, &y);
+	if (input_button_pressed(INPUT_BUTTON_LEFT)) {
+		log_info("Left button clicked! %.2f %.2f\n", x, y);
+	}
+	if (input_button_pressed(INPUT_BUTTON_RIGHT)) {
+		log_info("Right button clicked! %.2f %.2f\n", x, y);
+	}
 	return true;
 }
 
