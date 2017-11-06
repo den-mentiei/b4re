@@ -20,12 +20,10 @@ void input_update() {
 	}
 }
 
-// Returns *true* if the user pressed the button during this frame, of *false* otherwise.
 bool input_button_pressed(input_button_t b) {
 	return s_ctx.curr[b] && !s_ctx.prev[b];
 }
 
-// Returns *true* if the user released the button during this frame, of *false* otherwise.
 bool input_button_released(input_button_t b) {
 	return !s_ctx.curr[b] && s_ctx.prev[b];
 }

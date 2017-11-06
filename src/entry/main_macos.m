@@ -113,7 +113,8 @@ const entry_window_info_t* entry_get_window() {
 bool entry_mouse_pressed(entry_button_t b) {
 	if (b == ENTRY_BUTTON_LEFT) {
 		return s_ctx.mouse_left;
-	} else if (b == ENTRY_BUTTON_RIGHT) {
+	}
+	if (b == ENTRY_BUTTON_RIGHT) {
 		return s_ctx.mouse_right;
 	}
 	return false;
@@ -186,8 +187,8 @@ int main(int argc, const char* argv[]) {
 
 		s_window.display = NULL;
 		s_window.window = window;
-	    s_window.width = w;
-	    s_window.height = h;
+		s_window.width = w;
+		s_window.height = h;
 	
 		// Forces bgfx to operate in single-threaded mode. TODO: proper threading.
 		bgfx_render_frame(-1);
