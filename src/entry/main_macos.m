@@ -57,8 +57,8 @@ const entry_window_info_t* entry_get_window() {
 }
 
 int main(int argc, const char* argv[]) {
-	const uint16_t w = 600;
-	const uint16_t h = 400;
+	const uint16_t w = ENTRY_WINDOW_WIDTH;
+	const uint16_t h = ENTRY_WINDOW_HEIGHT;
 
 	@autoreleasepool {
 	    [NSApplication sharedApplication];

@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define ENTRY_WINDOW_WIDTH  1024.0f
+#define ENTRY_WINDOW_HEIGHT 512.0f
+
 typedef struct {
 	void* display;
 	void* window;

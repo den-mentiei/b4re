@@ -42,7 +42,8 @@ bool game_update(uint16_t width, uint16_t height, float dt) {
 }
 
 void game_render(uint16_t width, uint16_t height, float dt) {
-	render_sprite(&assets_sprites()->assets.travel_map.atlas_tiled_grass, 0.0f, 0.0f);
+	const sprite_t* grass = &assets_sprites()->assets.travel_map.atlas_tiled_grass;
+	render_sprite(grass, 32.0f, 32.0f, 448.0f, 448.0f);
 }
 
 void game_shutdown() {

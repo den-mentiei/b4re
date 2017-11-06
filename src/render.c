@@ -20,9 +20,6 @@ const uint64_t DEFAULT_STATE_2D =
 	(0
 	 | BGFX_STATE_RGB_WRITE
 	 | BGFX_STATE_ALPHA_WRITE
-	 | BGFX_STATE_DEPTH_TEST_LESS
-	 | BGFX_STATE_DEPTH_WRITE
-	 | BGFX_STATE_MSAA
 	 | BGFX_STATE_CULL_CCW
 	 );
 
@@ -48,21 +45,28 @@ void render_init() {
 	assets_init();
 }
 
-// 0 1
-// 3 2
 static render_vertex_t s_vertices[] = {
-	{ -0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 0xFFFFFFFF },
-	{  0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0xFFFFFFFF },
-	{  0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF },
-	{ -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0xFFFFFFFF },
+	{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0xFFFFFFFF },
+	{ 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0xFFFFFFFF },
+	{ 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF },
+	{ 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0xFFFFFFFF },
 };
 
+// 0 1
+// 3 2
 static uint16_t s_indices[] = {
 	0, 1, 2,
 	2, 3, 0
 };
 
-void render_sprite(const sprite_t* s, float x, float y) {
+void render_sprite(const sprite_t* s, float x, float y, float w, float h) {
+#define VERT(i, _x, _y) s_vertices[i].x = _x; s_vertices[i].y = _y;
+	VERT(0, x,     y);
+	VERT(1, x + w, y);
+	VERT(2, x + w, y + h);
+	VERT(3, x,     y + h);
+#undef VERT
+
 	const size_t NUM_INDICES =  sizeof(s_indices) / sizeof(s_indices[0]);
 	const size_t NUM_VERTICES = sizeof(s_vertices) / sizeof(s_vertices[0]);
 

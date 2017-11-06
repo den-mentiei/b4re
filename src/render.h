@@ -11,6 +11,6 @@ typedef struct {
 void render_init();
 
 struct sprite_t;
-void render_sprite(const struct sprite_t* s, float x, float y);
+void render_sprite(const struct sprite_t* s, float x, float y, float w, float h);
 
 void render_shutdown();

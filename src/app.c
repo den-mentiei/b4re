@@ -2,6 +2,7 @@
 
 #include <bgfx/bgfx.h>
 #include <bgfx/platform.h>
+#include <gb_math.h>
 
 #include "game.h"
 #include "http.h"
@@ -35,7 +36,6 @@ bool entry_init(int32_t argc, const char* argv[]) {
 
 	bgfx_set_platform_data(&pd);
 
-
 	/* bgfx_init(BGFX_RENDERER_TYPE_METAL, BGFX_PCI_ID_NONE, 0, NULL, NULL); */
 	bgfx_init(BGFX_RENDERER_TYPE_COUNT, BGFX_PCI_ID_NONE, 0, NULL, NULL);
 	bgfx_reset(s_ctx.w, s_ctx.h, s_ctx.reset);
@@ -53,12 +53,18 @@ bool entry_tick(float dt) {
 
 	bool should_continue = game_update(s_ctx.w, s_ctx.h, dt);
 
-	bgfx_set_view_rect(0, 0, 0, s_ctx.w, s_ctx.h);
-	bgfx_touch(0);
-
 	bgfx_dbg_text_clear(0, false);
 	bgfx_dbg_text_printf(0, 0, 0x4f, "b4re is alive and kicking");
 	bgfx_dbg_text_printf(0, 1, 0x6f, "dt: %0.4fms", dt);
+	
+	bgfx_set_view_name(0, "main");
+	bgfx_set_view_mode(0, BGFX_VIEW_MODE_SEQUENTIAL);
+
+	bgfx_set_view_rect(0, 0, 0, s_ctx.w, s_ctx.h);
+	bgfx_touch(0);
+	gbMat4 proj;
+	gb_mat4_ortho2d(&proj, 0.0f, s_ctx.w, s_ctx.h, 0.0f);
+	bgfx_set_view_transform(0, NULL, proj.e);
 
 	game_render(s_ctx.w, s_ctx.h, dt);
 
