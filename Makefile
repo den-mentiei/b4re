@@ -22,11 +22,13 @@ SHADER_INCLUDES := "3rdparty/bgfx/include"
 
 # APP
 
-$(EXECUTABLE): $(PROJECT) touch
+$(EXECUTABLE): $(PROJECT) touch completion
 	@ cd $(PROJECT_DIR) && make
 
 $(PROJECT): shaders assets
 	$(PREMAKE) gmake
+
+completion:
 	$(PREMAKE) clang-complete
 
 # TODO: remove it.
