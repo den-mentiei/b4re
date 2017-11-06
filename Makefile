@@ -22,10 +22,10 @@ SHADER_INCLUDES := "3rdparty/bgfx/include"
 
 # APP
 
-$(EXECUTABLE): $(PROJECT) touch assets
+$(EXECUTABLE): $(PROJECT) touch
 	@ cd $(PROJECT_DIR) && make
 
-$(PROJECT): shaders
+$(PROJECT): shaders assets
 	$(PREMAKE) gmake
 	$(PREMAKE) clang-complete
 
