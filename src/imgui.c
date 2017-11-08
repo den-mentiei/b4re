@@ -59,13 +59,13 @@ bool imgui_button(int64_t id, const struct sprite_t* s, float x, float y, int w,
 	if (s_ctx.hot == id) {
 		if (s_ctx.active == id) {
 			// hot & active.
-			render_sprite(s, x, y, COLOR_ACTIVE);
+			render_sprite_colored(s, x, y, COLOR_ACTIVE);
 		} else {
 			// just hot.
-			render_sprite(s, x, y, COLOR_HOT);
+			render_sprite_colored(s, x, y, COLOR_HOT);
 		}
 	} else {
-		render_sprite(s, x, y, COLOR_NORMAL);
+		render_sprite_colored(s, x, y, COLOR_NORMAL);
 	}
 
 	return !s_ctx.down && s_ctx.hot == id && s_ctx.active == id;

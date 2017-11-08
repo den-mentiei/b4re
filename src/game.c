@@ -34,6 +34,7 @@ bool game_init(int32_t argc, const char* argv[]) {
 	/* http_post("http://ancientlighthouse.com:8080/api/logout", test_handler, NULL); */
 
 	render_init();
+	assets_init();
 
 	return true;
 }
@@ -43,17 +44,15 @@ bool game_update(uint16_t width, uint16_t height, float dt) {
 }
 
 void game_render(uint16_t width, uint16_t height, float dt) {
-	const sprite_t* grass = &assets_sprites()->assets.travel_map.atlas_tiled_grass;
-	render_sprite(grass, 32.0f, 32.0f, RENDER_COLOR(255, 255, 255));
+	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);
 
-	const sprite_t* cs = &assets_sprites()->assets.travel_map.button_compass_n;
-	const int csw = assets_sprites_width(cs->index);
-	const int csh = assets_sprites_height(cs->index);
-	if (imgui_button(1, cs, 128.0f, 128.0f, csw, csh)) {
+	const struct sprite_t* cs = assets_sprites()->travel_map.button_compass_n;
+	if (imgui_button(1, cs, 128.0f, 128.0f, 64.0f, 64.0f)) {
 		log_info("Compass pressed.\n");
 	}
 }
 
 void game_shutdown() {
+	assets_shutdown();
 	render_shutdown();
 }

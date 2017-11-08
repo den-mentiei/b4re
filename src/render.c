@@ -1,19 +1,42 @@
 #include "render.h"
 
+#include <assert.h>
 #include <string.h> // memcpy
 
+#include <stb_image.h>
 #include <bgfx/bgfx.h>
 
 #include "shaders/tex_color_vs.h"
 #include "shaders/tex_color_fs.h"
 
-#include "generated/assets.h"
+// TODO: ?
+#define MAX_TEXTURES 1024
+#define MAX_SPRITES  1024
+
+typedef struct sprite_t {
+	render_texture_t tex;
+	float  w,  h;
+	float u0, v0;
+	float u1, v1;
+} sprite_t;
 
 static struct {
 	bgfx_vertex_decl_t    vdecl;
 	bgfx_program_handle_t program;
 	bgfx_uniform_handle_t u_texture;
-	bgfx_texture_handle_t white_texture;
+
+	struct {
+		size_t                count;
+		struct {
+			bgfx_texture_handle_t handle;
+			float w, h;
+		} data[MAX_TEXTURES];
+	} textures;
+
+	struct {
+		size_t   count;
+		sprite_t data[MAX_SPRITES];
+	} sprites;
 } s_ctx = {0};
 
 const uint64_t DEFAULT_STATE_2D =
@@ -39,10 +62,69 @@ void render_init() {
 	s_ctx.u_texture = bgfx_create_uniform("s_texture", BGFX_UNIFORM_TYPE_INT1, 1);
 
 	static uint32_t white = 0xFFFFFFFF;
-	s_ctx.white_texture = bgfx_create_texture_2d(1, 1, false, 0, BGFX_TEXTURE_FORMAT_RGBA8, BGFX_TEXTURE_U_MIRROR | BGFX_TEXTURE_W_MIRROR | BGFX_TEXTURE_MAG_POINT | BGFX_TEXTURE_MIN_POINT, bgfx_make_ref(&white, sizeof(white)));
-	bgfx_set_texture_name(s_ctx.white_texture, "dummy white texture");
+	bgfx_texture_handle_t white_texture = bgfx_create_texture_2d(1, 1, false, 0, BGFX_TEXTURE_FORMAT_RGBA8, BGFX_TEXTURE_U_MIRROR | BGFX_TEXTURE_W_MIRROR | BGFX_TEXTURE_MAG_POINT | BGFX_TEXTURE_MIN_POINT, bgfx_make_ref(&white, sizeof(white)));
+	bgfx_set_texture_name(white_texture, "dummy white texture");
 
-	assets_init();
+	render_texture_t white_id            = s_ctx.textures.count++;
+	s_ctx.textures.data[white_id].handle = white_texture;
+	s_ctx.textures.data[white_id].w      = 1;
+	s_ctx.textures.data[white_id].h      = 1;
+}
+
+void render_shutdown() {
+	for (size_t i = 0; i < s_ctx.textures.count; ++i) {
+		bgfx_destroy_texture(s_ctx.textures.data[i].handle);
+	}
+
+	bgfx_destroy_uniform(s_ctx.u_texture);
+	bgfx_destroy_program(s_ctx.program);
+}
+
+render_texture_t render_load_texture(const char* path) {
+	assert(s_ctx.textures.count < MAX_TEXTURES);
+
+	render_texture_t id = s_ctx.textures.count++;
+
+	const uint32_t flags = BGFX_TEXTURE_NONE
+			| BGFX_TEXTURE_U_CLAMP | BGFX_TEXTURE_V_CLAMP
+			| BGFX_TEXTURE_MAG_POINT | BGFX_TEXTURE_MIN_POINT;
+
+	int w = 0, h = 0, comp = 0;
+	stbi_uc* bytes = stbi_load(path, &w, &h, &comp, 4);
+
+	if (bytes) {
+		// TODO: do we really need a copy here?
+		bgfx_texture_handle_t handle = bgfx_create_texture_2d(w, h, false, 1, BGFX_TEXTURE_FORMAT_RGBA8, flags, bgfx_copy(bytes, w * h * 4));
+		s_ctx.textures.data[id].handle = handle;
+		s_ctx.textures.data[id].w      = w;
+		s_ctx.textures.data[id].h      = h;
+		bgfx_set_texture_name(handle, path);
+		stbi_image_free(bytes);
+	} else {
+		id = 0;
+	}
+
+	return id;
+}
+
+const sprite_t* render_create_sprite(render_texture_t t, float u0, float v0, float u1, float v1) {
+	assert(s_ctx.sprites.count < MAX_SPRITES);
+	assert(t < s_ctx.textures.count);
+
+	sprite_t* s = &s_ctx.sprites.data[s_ctx.sprites.count++];
+
+	const float w = s_ctx.textures.data[t].w;
+	const float h = s_ctx.textures.data[t].h;
+	
+	s->tex = t;
+	s->w   = w;
+	s->h   = h;
+	s->u0  = u0;
+	s->v0  = v0;
+	s->u1  = u1;
+	s->v1  = v1;
+
+	return s;
 }
 
 static render_vertex_t s_vertices[] = {
@@ -59,11 +141,15 @@ static uint16_t s_indices[] = {
 	2, 3, 0
 };
 
-void render_sprite(const sprite_t* s, float x, float y, color_t _color) {
-	const int w = assets_sprites_width(s->index);
-	const int h = assets_sprites_height(s->index);
+void render_sprite(const sprite_t* s, float x, float y) {
+	render_sprite_colored(s, x, y, 0xFFFFFFFF);
+}
 
-#define VERT(i, _x, _y) s_vertices[i].x = _x; s_vertices[i].y = _y; s_vertices[i].color = _color;
+void render_sprite_colored(const sprite_t* s, float x, float y, color_t color) {
+	const float w = s->w;
+	const float h = s->h;
+
+#define VERT(i, _x, _y) s_vertices[i].x = _x; s_vertices[i].y = _y; s_vertices[i].color = color;
 	VERT(0, x,     y);
 	VERT(1, x + w, y);
 	VERT(2, x + w, y + h);
@@ -81,19 +167,11 @@ void render_sprite(const sprite_t* s, float x, float y, color_t _color) {
 	memcpy(tvb.data, s_vertices, tvb.size);
 	memcpy(tib.data, s_indices, tib.size);
 
-	bgfx_texture_handle_t tex = assets_sprites_texture(s->index);
+	bgfx_texture_handle_t tex = s_ctx.textures.data[s->tex].handle;
 
 	bgfx_set_transient_vertex_buffer(0, &tvb, 0, NUM_VERTICES);
 	bgfx_set_transient_index_buffer(&tib, 0, NUM_INDICES);
 	bgfx_set_texture(0, s_ctx.u_texture, tex, UINT32_MAX);
 	bgfx_set_state(DEFAULT_STATE_2D, 0);
 	bgfx_submit(0, s_ctx.program, 0, false);
-}
-
-void render_shutdown() {
-	assets_shutdown();
-
-	bgfx_destroy_texture(s_ctx.white_texture);
-	bgfx_destroy_uniform(s_ctx.u_texture);
-	bgfx_destroy_program(s_ctx.program);
 }
