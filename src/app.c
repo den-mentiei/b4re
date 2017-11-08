@@ -5,6 +5,7 @@
 #include <gb_math.h>
 
 #include "input.h"
+#include "imgui.h"
 #include "game.h"
 #include "http.h"
 #include "allocator.h"
@@ -52,13 +53,14 @@ bool entry_init(int32_t argc, const char* argv[]) {
 bool entry_tick(float dt) {
 	check_resized();
 
-	input_update();
-	bool should_continue = game_update(s_ctx.w, s_ctx.h, dt);
-
 	bgfx_dbg_text_clear(0, false);
 	bgfx_dbg_text_printf(0, 0, 0x4f, "b4re is alive and kicking");
-	bgfx_dbg_text_printf(0, 1, 0x6f, "dt: %0.4fms", dt);
+	/* bgfx_dbg_text_printf(0, 1, 0x6f, "dt: %0.4fms", dt); */
 	
+	input_update();
+	imgui_update();
+	bool should_continue = game_update(s_ctx.w, s_ctx.h, dt);
+
 	bgfx_set_view_name(0, "main");
 	bgfx_set_view_mode(0, BGFX_VIEW_MODE_SEQUENTIAL);
 
@@ -69,6 +71,9 @@ bool entry_tick(float dt) {
 	bgfx_set_view_transform(0, NULL, proj.e);
 
 	game_render(s_ctx.w, s_ctx.h, dt);
+
+	// Should be called after anything that can call IMGUI.
+	imgui_post_update();
 
 	bgfx_frame(false);
 

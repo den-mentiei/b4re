@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "input.h"
+#include "imgui.h"
 #include "render.h"
 #include "log.h"
 #include "http.h"
@@ -39,20 +39,19 @@ bool game_init(int32_t argc, const char* argv[]) {
 }
 
 bool game_update(uint16_t width, uint16_t height, float dt) {
-	float x, y;
-	input_position(&x, &y);
-	if (input_button_pressed(INPUT_BUTTON_LEFT)) {
-		log_info("Left button clicked! %.2f %.2f\n", x, y);
-	}
-	if (input_button_pressed(INPUT_BUTTON_RIGHT)) {
-		log_info("Right button clicked! %.2f %.2f\n", x, y);
-	}
 	return true;
 }
 
 void game_render(uint16_t width, uint16_t height, float dt) {
 	const sprite_t* grass = &assets_sprites()->assets.travel_map.atlas_tiled_grass;
-	render_sprite(grass, 32.0f, 32.0f, 448.0f, 448.0f);
+	render_sprite(grass, 32.0f, 32.0f, RENDER_COLOR(255, 255, 255));
+
+	const sprite_t* cs = &assets_sprites()->assets.travel_map.button_compass_n;
+	const int csw = assets_sprites_width(cs->index);
+	const int csh = assets_sprites_height(cs->index);
+	if (imgui_button(1, cs, 128.0f, 128.0f, csw, csh)) {
+		log_info("Compass pressed.\n");
+	}
 }
 
 void game_shutdown() {
