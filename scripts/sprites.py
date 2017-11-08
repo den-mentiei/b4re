@@ -52,6 +52,8 @@ void assets_shutdown();
 
 // TODO: remove it.
 bgfx_texture_handle_t assets_sprites_texture(size_t i);
+int assets_sprites_width(size_t i);
+int assets_sprites_height(size_t i);
 
 const sprites_t* assets_sprites();
 """
@@ -106,6 +108,14 @@ const sprites_t* assets_sprites() {
 
 bgfx_texture_handle_t assets_sprites_texture(size_t i) {
     return s_textures[i].handle;
+}
+
+int assets_sprites_width(size_t i) {
+	return s_textures[i].w;
+}
+
+int assets_sprites_height(size_t i) {
+	return s_textures[i].h;
 }
 
 void assets_shutdown() {

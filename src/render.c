@@ -59,8 +59,11 @@ static uint16_t s_indices[] = {
 	2, 3, 0
 };
 
-void render_sprite(const sprite_t* s, float x, float y, float w, float h) {
-#define VERT(i, _x, _y) s_vertices[i].x = _x; s_vertices[i].y = _y;
+void render_sprite(const sprite_t* s, float x, float y, color_t _color) {
+	const int w = assets_sprites_width(s->index);
+	const int h = assets_sprites_height(s->index);
+
+#define VERT(i, _x, _y) s_vertices[i].x = _x; s_vertices[i].y = _y; s_vertices[i].color = _color;
 	VERT(0, x,     y);
 	VERT(1, x + w, y);
 	VERT(2, x + w, y + h);
