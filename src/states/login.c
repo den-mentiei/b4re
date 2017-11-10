@@ -45,8 +45,8 @@ void states_login_render(uint16_t width, uint16_t height, float dt) {
 	const float AVATAR_SIZE   = 64.0f;
 	const float AVATAR_MARGIN = AVATAR_SIZE * 0.5f;
 
-	const float y = (height - AVATAR_SIZE) * 0.5f;
-	float x       = (width - (AVATAR_SIZE * NUM_USERS + AVATAR_MARGIN * (NUM_USERS - 1))) * 0.5f;
+	float y = (height - AVATAR_SIZE) * 0.5f;
+	float x = (width - (AVATAR_SIZE * NUM_USERS + AVATAR_MARGIN * (NUM_USERS - 1))) * 0.5f;
 
 	for (size_t i = 0; i < NUM_USERS; ++i) {
 		if (imgui_button(i + 1, users[i].avatar, x, y, AVATAR_SIZE, AVATAR_SIZE)) {
