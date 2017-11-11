@@ -30,4 +30,6 @@ void session_init(struct allocator_t* alloc);
 void session_shutdown();
 
 const session_t* session_current();
+
 void session_start(const char* username, const char* password);
+void session_end();

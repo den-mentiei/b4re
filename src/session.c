@@ -1,6 +1,7 @@
 #include "session.h"
 
 #include <assert.h>
+#include <string.h> // memset
 
 #include "log.h"
 #include "http.h"
@@ -11,6 +12,7 @@ static struct {
 
 /// API
 static void login(const char* username, const char* password);
+static void logout();
 static void fetch_state();
 /// API END
 
@@ -27,12 +29,21 @@ void session_start(const char* username, const char* password) {
 	assert(username);
 	assert(password);
 
-	// TODO: @network Issue a login request.
-
 	login(username, password);
 
+	// TODO: set it only if login was successfull.
 	s_ctx.current.player.username = username;
 	s_ctx.current.is_valid = true;
+}
+
+void session_end() {
+	assert(s_ctx.current.is_valid);
+
+	logout();
+
+	// TODO: set it only if login was successfull.
+	s_ctx.current.is_valid = false;
+	memset(&s_ctx.current, 0, sizeof(session_t));
 }
 
 // TODO: Move out?
@@ -67,8 +78,10 @@ static void login(const char* username, const char* password) {
 	/* http_get("http://ancientlighthouse.com:8080/api/state", test_handler, NULL); */
 
 	/* while (state != 2) {}; */
+}
 
-	/* http_post("http://ancientlighthouse.com:8080/api/logout", test_handler, NULL); */
+static void logout() {
+	http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL);
 }
 
 static void fetch_state() {
