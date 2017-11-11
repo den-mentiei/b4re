@@ -146,7 +146,7 @@ void render_load_font(const char* name, const char* path) {
 	fonsAddFontMem(s_ctx.fons, name, data, (int)size, 1);
 }
 
-void render_text(const char* text, const char* font, float size_pt, float x, float y) {
+void render_text(const char* text, const char* font, float size_pt, float x, float y, bool shadow) {
 	assert(text);
 
 	int f = fonsGetFontByName(s_ctx.fons, font);
@@ -156,10 +156,13 @@ void render_text(const char* text, const char* font, float size_pt, float x, flo
 	fonsSetSize(s_ctx.fons,  size_pt);
 	fonsSetBlur(s_ctx.fons,  0);
 	fonsSetColor(s_ctx.fons, 0xFFFFFFFF);
+	fonsSetAlign(s_ctx.fons, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE);
 
-	// TODO: fonsTextBounds as optional output?
-
-	// TODO: Shadow?
+	fonsPushState(s_ctx.fons);
+	fonsSetBlur(s_ctx.fons,  0);
+	fonsSetColor(s_ctx.fons, 0xFF000000);
+	fonsDrawText(s_ctx.fons, x + 2.0f, y + 2.0f, text, NULL);
+	fonsPopState(s_ctx.fons);
 
 	fonsDrawText(s_ctx.fons, x, y, text, NULL);
 }

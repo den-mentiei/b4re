@@ -151,5 +151,5 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
 
 	render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
-	render_text("Hello, sailor!", "regular", 24.0f, 64.0f, 20.0f);
+	render_text("Hello, sailor!", "regular", 24.0f, 512.0f * 0.5f, 16.0f, true);
 }
