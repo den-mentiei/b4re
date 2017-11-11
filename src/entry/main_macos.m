@@ -76,29 +76,29 @@ static void on_event(NSEvent* e) {
 
 	NSEventType type = [e type];
 	switch (type) {
-	case NSEventTypeMouseMoved:
-	case NSEventTypeLeftMouseDragged:
-	case NSEventTypeRightMouseDragged:
-	case NSEventTypeOtherMouseDragged:
-		get_mouse_position(&s_ctx.mouse_x, &s_ctx.mouse_y);
-		break;
+		case NSEventTypeMouseMoved:
+		case NSEventTypeLeftMouseDragged:
+		case NSEventTypeRightMouseDragged:
+		case NSEventTypeOtherMouseDragged:
+			get_mouse_position(&s_ctx.mouse_x, &s_ctx.mouse_y);
+			break;
 
-	case NSEventTypeLeftMouseDown:
-		s_ctx.mouse_left = true;
-		break;
-	case NSEventTypeLeftMouseUp:
-		s_ctx.mouse_left = false;
-		break;
+		case NSEventTypeLeftMouseDown:
+			s_ctx.mouse_left = true;
+			break;
+		case NSEventTypeLeftMouseUp:
+			s_ctx.mouse_left = false;
+			break;
 
-	case NSEventTypeRightMouseDown:
-		s_ctx.mouse_right = true;
-		break;
-	case NSEventTypeRightMouseUp:
-		s_ctx.mouse_right = false;
-		break;
+		case NSEventTypeRightMouseDown:
+			s_ctx.mouse_right = true;
+			break;
+		case NSEventTypeRightMouseUp:
+			s_ctx.mouse_right = false;
+			break;
 
-	default:
-		break;
+		default:
+			break;
 	}
 }
 
