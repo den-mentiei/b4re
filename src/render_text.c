@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#define FONS_STATIC
 #define FONTSTASH_IMPLEMENTATION
 #include <fontstash.h>
 
@@ -108,7 +109,7 @@ void render_text_init() {
 
 	params.width  = ATLAS_WIDTH;
 	params.height = ATLAS_HEIGHT;
-	params.flags  = (unsigned char)FONS_ZERO_TOPLEFT;
+	params.flags  = FONS_ZERO_TOPLEFT;
 
 	params.renderCreate = create_texture;
 	params.renderResize = resize_texture;
