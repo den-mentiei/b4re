@@ -1,13 +1,24 @@
 #include "session.h"
 
 #include <assert.h>
-#include <string.h> // memset
+#include <string.h> // memset, memcpy, strcpy
 
+#include <tinycthread.h>
+
+#include "allocator.h"
 #include "log.h"
 #include "http.h"
 
 static struct {
+	allocator_t alloc;
+
 	session_t current;
+	session_t synced;
+
+	char username[128];
+	char avatar[128];
+
+	mtx_t lock;
 } s_ctx;
 
 /// API
@@ -16,9 +27,19 @@ static void logout();
 static void fetch_state();
 /// API END
 
-void session_init(struct allocator_t* alloc) {}
+void session_init(struct allocator_t* alloc) {
+	if (mtx_init(&s_ctx.lock, mtx_plain) != thrd_success) log_fatal("[seession] failed to create mutex\n");
+}
 
-void session_shutdown() {}
+void session_update() {
+	mtx_lock(&s_ctx.lock);
+	memcpy(&s_ctx.current, &s_ctx.synced, sizeof(session_t));
+	mtx_unlock(&s_ctx.lock);
+}
+
+void session_shutdown() {
+	mtx_destroy(&s_ctx.lock);
+}
 
 const session_t* session_current() {
 	return &s_ctx.current;
@@ -26,14 +47,8 @@ const session_t* session_current() {
 
 void session_start(const char* username, const char* password) {
 	assert(!s_ctx.current.is_valid);
-	assert(username);
-	assert(password);
 
 	login(username, password);
-
-	// TODO: set it only if login was successfull.
-	s_ctx.current.player.username = username;
-	s_ctx.current.is_valid = true;
 }
 
 void session_end() {
@@ -42,7 +57,10 @@ void session_end() {
 	logout();
 
 	// TODO: set it only if login was successfull.
-	s_ctx.current.is_valid = false;
+	mtx_lock(&s_ctx.lock);
+	memset(&s_ctx.synced,  0, sizeof(session_t));
+	mtx_unlock(&s_ctx.lock);
+
 	memset(&s_ctx.current, 0, sizeof(session_t));
 }
 
@@ -58,20 +76,31 @@ void session_end() {
 /* 	state++; */
 /* } */
 
+static char* LOGIN_TAG = "login";
+
 static void http_handler(const uint8_t* data, size_t size, void* payload) {
+	if (payload == LOGIN_TAG) {
+		mtx_lock(&s_ctx.lock);
+		s_ctx.synced.is_valid = true;
+		mtx_unlock(&s_ctx.lock);
+	}
+
 	log_info((const char*)data);
 	log_info("\n");
 }
 
 static void login(const char* username, const char* password) {
-	log_info("[session] Login for u=%s\n", username);
+	assert(username);
+	assert(password);
+
+	log_info("[session] Login with username=%s\n", username);
 
 	http_form_part_t form[] = {
 		{ "username", username },
 		{ "password", password }
 	};
 
-	http_post_form("http://ancientlighthouse.com:8080/api/login", form, sizeof(form) / sizeof(form[0]), http_handler, NULL);
+	http_post_form("http://ancientlighthouse.com:8080/api/login", form, sizeof(form) / sizeof(form[0]), http_handler, LOGIN_TAG);
 
 	/* while (state != 1) {}; */
 

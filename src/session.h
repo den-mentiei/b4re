@@ -27,6 +27,7 @@ typedef struct session_t {
 struct allocator_t;
 
 void session_init(struct allocator_t* alloc);
+void session_update();
 void session_shutdown();
 
 const session_t* session_current();

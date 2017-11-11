@@ -50,7 +50,8 @@ static void free_easy_handle(CURL* h) {
 
 	p->handler(p->data, p->size, p->handler_payload);
 
-	// TODO: pool_free(ctx.pending, r); thread-safety!
+	// TODO: Thread-safety!
+	pool_free(ctx.pending, p);
 	curl_easy_cleanup(h);
 }
 

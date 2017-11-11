@@ -6,6 +6,8 @@
 
 #include "input.h"
 #include "imgui.h"
+#include "render.h"
+#include "session.h"
 #include "game.h"
 #include "http.h"
 #include "allocator.h"
@@ -45,7 +47,9 @@ bool entry_init(int32_t argc, const char* argv[]) {
 
 	bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
 
+	render_init();
 	http_init(allocator_main());
+	session_init(allocator_main());
 
 	return game_init(argc, argv);
 }
@@ -54,10 +58,9 @@ bool entry_tick(float dt) {
 	check_resized();
 
 	bgfx_dbg_text_clear(0, false);
-	bgfx_dbg_text_printf(0, 0, 0x4f, "b4re is alive and kicking");
-	/* bgfx_dbg_text_printf(0, 1, 0x6f, "dt: %0.4fms", dt); */
 	
 	input_update();
+	session_update();
 	imgui_update();
 	bool should_continue = game_update(s_ctx.w, s_ctx.h, dt);
 
@@ -82,6 +85,8 @@ bool entry_tick(float dt) {
 
 void entry_shutdown() {
 	game_shutdown();
+	session_shutdown();
 	http_shutdown();
+	render_shutdown();
 	bgfx_shutdown();
 }

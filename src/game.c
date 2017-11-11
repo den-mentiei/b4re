@@ -14,7 +14,6 @@ static struct {
 } s_ctx;
 
 bool game_init(int32_t argc, const char* argv[]) {
-	render_init();
 	assets_init();
 	return true;
 }
@@ -46,7 +45,6 @@ void game_render(uint16_t width, uint16_t height, float dt) {
 
 void game_shutdown() {
 	assets_shutdown();
-	render_shutdown();
 }
 
 void game_state_switch(game_state_t s) {

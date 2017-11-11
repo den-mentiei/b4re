@@ -8,7 +8,9 @@
 
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 	if (input_button_pressed(INPUT_BUTTON_LEFT)) {
-		session_end();
+		if (session_current()->is_valid) {
+			session_end();
+		}
 		game_state_switch(GAME_STATE_LOGIN);
 	}
 }
