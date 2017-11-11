@@ -176,3 +176,18 @@ void render_sprite_colored(const sprite_t* s, float x, float y, color_t color) {
 	bgfx_set_state(DEFAULT_STATE_2D, 0);
 	bgfx_submit(0, s_ctx.program, 0, false);
 }
+
+void render_transient(void* vb, size_t num_vertices, void* ib, size_t num_indices, temp_handle_t tex) {
+	bgfx_texture_handle_t th;
+	th.idx = tex;
+
+	bgfx_set_transient_vertex_buffer(0, vb, 0, num_vertices);
+	bgfx_set_transient_index_buffer(ib, 0, num_indices);
+	bgfx_set_texture(0, s_ctx.u_texture, th, UINT32_MAX);
+	bgfx_set_state(DEFAULT_STATE_2D, 0);
+	bgfx_submit(0, s_ctx.program, 0, false);
+}
+
+void* render_vdecl() {
+	return &s_ctx.vdecl;
+}

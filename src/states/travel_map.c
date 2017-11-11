@@ -4,6 +4,7 @@
 #include "session.h"
 #include "input.h"
 #include "render.h"
+#include "render_text.h"
 #include "generated/assets.h"
 
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
@@ -150,4 +151,5 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
 
 	render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
+	render_text("Hello, sailor!", "regular", 24.0f, 64.0f, 20.0f);
 }

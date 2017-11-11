@@ -8,7 +8,8 @@ ifeq ($(UNAME),Darwin)
 	DEBUG := lldb
 
 	SHADERC         := ./3rdparty/bgfx/bin/osx_x64/shadercRelease
-	SHADERC_OS_ARGS := --platform osx # TODO: -p metal
+	SHADERC_OS_ARGS := --platform osx
+	# SHADERC_OS_ARGS := --platform osx -p metal
 endif
 
 CONFIGURATION   := debug

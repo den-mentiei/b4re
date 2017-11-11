@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "render.h"
+#include "render_text.h"
 
 #include "generated/assets.h"
 
@@ -16,6 +17,8 @@ static struct {
 
 bool game_init(int32_t argc, const char* argv[]) {
 	assets_init();
+
+	render_load_font("regular", "assets/fonts/Ancient_Lighthouse_Regular.otf");
 
 	// TODO: Remove it.
 	session_start("den", "den_pass");

@@ -29,7 +29,8 @@ project "entry"
 		"src/**.h", "src/**.c",
 		"3rdparty/tinycthread/*.c",
 		"3rdparty/gb/*.c",
-		"3rdparty/stb/*.c"
+		"3rdparty/stb/*.c",
+		"3rdparty/fontstash/*.c"
 	}
 
 	includedirs { "src" }
@@ -39,7 +40,8 @@ project "entry"
 		"3rdparty/curl/include",
 		"3rdparty/tinycthread",
 		"3rdparty/gb",
-		"3rdparty/stb"
+		"3rdparty/stb",
+		"3rdparty/fontstash"
 	}
 
 	links {

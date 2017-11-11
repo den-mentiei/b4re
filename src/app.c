@@ -7,6 +7,7 @@
 #include "input.h"
 #include "imgui.h"
 #include "render.h"
+#include "render_text.h"
 #include "session.h"
 #include "game.h"
 #include "http.h"
@@ -48,6 +49,7 @@ bool entry_init(int32_t argc, const char* argv[]) {
 	bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
 
 	render_init();
+	render_text_init();
 	http_init(allocator_main());
 	session_init(allocator_main());
 
@@ -87,6 +89,7 @@ void entry_shutdown() {
 	game_shutdown();
 	session_shutdown();
 	http_shutdown();
+	render_text_shutdown();
 	render_shutdown();
 	bgfx_shutdown();
 }

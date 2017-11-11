@@ -29,3 +29,10 @@ render_texture_t render_load_texture(const char* path);
 const struct sprite_t* render_create_sprite(render_texture_t t, float u0, float v0, float u1, float v1);
 void render_sprite(const struct sprite_t* s, float x, float y);
 void render_sprite_colored(const struct sprite_t* s, float x, float y, color_t color);
+
+
+// TODO: Refactor it.
+typedef uint16_t temp_handle_t;
+void* render_vdecl();
+void render_transient(void* vb, size_t num_vertices, void* ib, size_t num_indices, temp_handle_t tex);
+

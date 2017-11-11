@@ -34,7 +34,6 @@ void imgui_update() {
 }
 
 void imgui_post_update() {
-	int64_t prev_active = s_ctx.active;
 	if (!s_ctx.down) {
 		s_ctx.active = 0;
 	} else if (s_ctx.active == 0) {
