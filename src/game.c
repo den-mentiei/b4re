@@ -6,6 +6,7 @@
 
 #include "generated/assets.h"
 
+#include "session.h"
 #include "states/login.h"
 #include "states/travel_map.h"
 
@@ -15,6 +16,11 @@ static struct {
 
 bool game_init(int32_t argc, const char* argv[]) {
 	assets_init();
+
+	// TODO: Remove it.
+	session_start("den", "den_pass");
+	game_state_switch(GAME_STATE_MAP);
+
 	return true;
 }
 
