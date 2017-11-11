@@ -35,11 +35,13 @@ typedef struct {
 static void resource_indicator_render(const indicator_sprites_t* sprites, float x, float y) {
 	const size_t NUM_SEGMENTS = 12;
 
-	// TODO: Render regen value text.
 	render_sprite(sprites->regen[0], x, y);
-	render_sprite(sprites->time,     x, y + 32.0f);
 
-	y += 64.0f;
+	y += 32.0f;
+	render_sprite(sprites->time, x, y);
+	render_text("9", "regular", RENDER_COLOR(0, 0, 0), 24.0f, x + 16.0f, y + 16.0f, false);
+
+	y += 32.0f;
 	for (size_t i = 0; i < NUM_SEGMENTS; ++i) {
 		render_sprite(sprites->segment_full, x, y);
 		y += 32.0f;
@@ -151,5 +153,5 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
 
 	render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
-	render_text("Hello, sailor!", "regular", 24.0f, 512.0f * 0.5f, 16.0f, true);
+	render_text("Hello, sailor!", "regular", RENDER_COLOR(255, 255, 255), 24.0f, 512.0f * 0.5f, 16.0f, true);
 }

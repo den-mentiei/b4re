@@ -146,7 +146,7 @@ void render_load_font(const char* name, const char* path) {
 	fonsAddFontMem(s_ctx.fons, name, data, (int)size, 1);
 }
 
-void render_text(const char* text, const char* font, float size_pt, float x, float y, bool shadow) {
+void render_text(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, bool shadow) {
 	assert(text);
 
 	int f = fonsGetFontByName(s_ctx.fons, font);
@@ -155,14 +155,16 @@ void render_text(const char* text, const char* font, float size_pt, float x, flo
 	fonsSetFont(s_ctx.fons,  f);
 	fonsSetSize(s_ctx.fons,  size_pt);
 	fonsSetBlur(s_ctx.fons,  0);
-	fonsSetColor(s_ctx.fons, 0xFFFFFFFF);
+	fonsSetColor(s_ctx.fons, color);
 	fonsSetAlign(s_ctx.fons, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE);
 
-	fonsPushState(s_ctx.fons);
-	fonsSetBlur(s_ctx.fons,  0);
-	fonsSetColor(s_ctx.fons, 0xFF000000);
-	fonsDrawText(s_ctx.fons, x + 2.0f, y + 2.0f, text, NULL);
-	fonsPopState(s_ctx.fons);
+	if (shadow) {
+		fonsPushState(s_ctx.fons);
+		fonsSetBlur(s_ctx.fons,  0);
+		fonsSetColor(s_ctx.fons, 0xFF000000);
+		fonsDrawText(s_ctx.fons, x + 2.0f, y + 2.0f, text, NULL);
+		fonsPopState(s_ctx.fons);
+	}
 
 	fonsDrawText(s_ctx.fons, x, y, text, NULL);
 }
