@@ -4,6 +4,7 @@
 
 #include "input.h"
 #include "render.h"
+#include "render.inl"
 
 static struct {
 	float x, y;
@@ -15,10 +16,21 @@ static struct {
 	int64_t active;
 } s_ctx;
 
+// TODO: @refactor Pass button style together with sprites.
+static color_t COLOR_NORMAL;
+static color_t COLOR_HOT;
+static color_t COLOR_ACTIVE;
+
 static bool is_mouse_hit(float x, float y, float w, float h) {
 	const float mx = s_ctx.x;
 	const float my = s_ctx.y;
 	return mx >= x && mx < x + w && my >= y && my < y + h;
+}
+
+void imgui_init() {
+	COLOR_NORMAL = render_color(255, 255, 255);
+	COLOR_HOT    = render_color(  0, 255,   5);
+	COLOR_ACTIVE = render_color(255,   0,   0);
 }
 
 void imgui_update() {
@@ -40,10 +52,6 @@ void imgui_post_update() {
 		s_ctx.active = -1;
 	}
 }
-
-static const color_t COLOR_NORMAL = RENDER_COLOR(255, 255, 255);
-static const color_t COLOR_HOT    = RENDER_COLOR(  0, 255,   5);
-static const color_t COLOR_ACTIVE = RENDER_COLOR(255,   0,   0);
 
 bool imgui_button(int64_t id, const struct sprite_t* s, float x, float y, int w, int h) {
 	assert(id > 0);

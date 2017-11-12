@@ -14,6 +14,7 @@ static struct {
 
 	session_t current;
 	session_t synced;
+	bool      is_active;
 
 	char username[128];
 	char avatar[128];
@@ -46,13 +47,13 @@ const session_t* session_current() {
 }
 
 void session_start(const char* username, const char* password) {
-	assert(!s_ctx.current.is_valid);
+	assert(!s_ctx.is_active);
 
 	login(username, password);
 }
 
 void session_end() {
-	assert(s_ctx.current.is_valid);
+	assert(s_ctx.is_active);
 
 	logout();
 
@@ -81,7 +82,7 @@ static char* LOGIN_TAG = "login";
 static void http_handler(const uint8_t* data, size_t size, void* payload) {
 	if (payload == LOGIN_TAG) {
 		mtx_lock(&s_ctx.lock);
-		s_ctx.synced.is_valid = true;
+		s_ctx.is_active = true;
 		mtx_unlock(&s_ctx.lock);
 	}
 

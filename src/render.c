@@ -25,6 +25,8 @@ static struct {
 	bgfx_program_handle_t program;
 	bgfx_uniform_handle_t u_texture;
 
+	const bgfx_memory_t* pending_memory;
+
 	struct {
 		size_t                count;
 		struct {
@@ -177,17 +179,55 @@ void render_sprite_colored(const sprite_t* s, float x, float y, color_t color) {
 	bgfx_submit(0, s_ctx.program, 0, false);
 }
 
-void render_transient(void* vb, size_t num_vertices, void* ib, size_t num_indices, temp_handle_t tex) {
-	bgfx_texture_handle_t th;
-	th.idx = tex;
+render_tex_t render_create_texture_rgba8(uint32_t width, uint32_t height) {
+	render_tex_t result;
+	bgfx_texture_handle_t tex = bgfx_create_texture_2d(width, height, false, 1, BGFX_TEXTURE_FORMAT_RGBA8, BGFX_TEXTURE_NONE, NULL);
+	memcpy(&result, &tex, sizeof(tex));
+	return result;
+}
 
-	bgfx_set_transient_vertex_buffer(0, vb, 0, num_vertices);
-	bgfx_set_transient_index_buffer(ib, 0, num_indices);
+void render_destroy_texture(render_tex_t tex) {
+	bgfx_texture_handle_t th;
+	memcpy(&th, &tex, sizeof(th));
+	bgfx_destroy_texture(th);
+}
+
+uint8_t* render_update_texture_begin(size_t size) {
+	assert(!s_ctx.pending_memory);
+
+	const bgfx_memory_t* mem = bgfx_alloc(size); 
+	s_ctx.pending_memory     = mem;
+	return mem->data;
+}
+
+void render_update_texture_end(render_tex_t tex, uint32_t x, uint32_t y, uint32_t w, uint32_t h) {
+	assert(s_ctx.pending_memory);
+
+	bgfx_texture_handle_t th;
+	memcpy(&th, &tex, sizeof(th));
+
+	bgfx_update_texture_2d(th, 0, 0, x, y, w, h, s_ctx.pending_memory, -1);
+	s_ctx.pending_memory = NULL;
+}
+
+void render_transient(const render_vertex_t* vertices, size_t num_vertices, const uint16_t* indices, size_t num_indices, render_tex_t tex) {
+	assert(vertices && num_vertices > 0);
+	assert(indices && num_indices > 0);
+
+	bgfx_transient_vertex_buffer_t tvb;
+	bgfx_transient_index_buffer_t  tib;
+
+	bgfx_alloc_transient_buffers(&tvb, &s_ctx.vdecl, num_vertices, &tib, num_indices);
+
+	memcpy(tvb.data, vertices, tvb.size);
+	memcpy(tib.data, indices,  tib.size);
+
+	bgfx_texture_handle_t th;
+	memcpy(&th, &tex, sizeof(th));
+
+	bgfx_set_transient_vertex_buffer(0, &tvb, 0, num_vertices);
+	bgfx_set_transient_index_buffer(&tib, 0, num_indices);
 	bgfx_set_texture(0, s_ctx.u_texture, th, UINT32_MAX);
 	bgfx_set_state(DEFAULT_STATE_2D, 0);
 	bgfx_submit(0, s_ctx.program, 0, false);
-}
-
-void* render_vdecl() {
-	return &s_ctx.vdecl;
 }

@@ -52,6 +52,7 @@ bool entry_init(int32_t argc, const char* argv[]) {
 	render_text_init();
 	http_init(allocator_main());
 	session_init(allocator_main());
+	imgui_init();
 
 	return game_init(argc, argv);
 }

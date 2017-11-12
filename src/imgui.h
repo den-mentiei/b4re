@@ -5,6 +5,7 @@
 
 struct sprite_t;
 
+void imgui_init();
 void imgui_update();
 void imgui_post_update();
 

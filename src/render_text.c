@@ -4,8 +4,6 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#include <bgfx/bgfx.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +14,7 @@
 #include "render.h"
 
 #define MAX_FONTS 4
+#define MAX_VERTICES FONS_VERTEX_COUNT
 
 static struct {
 	FONScontext* fons;
@@ -23,14 +22,17 @@ static struct {
 	int    loaded_fonts[MAX_FONTS];
 	size_t free;
 
-	bgfx_texture_handle_t tex;
-	uint32_t w, h;
-	bool     has_texture;
+	render_tex_t tex;
+	uint32_t     w, h;
+	bool         has_texture;
+
+	render_vertex_t vertices[MAX_VERTICES];
+	uint16_t        indices[MAX_VERTICES];
 } s_ctx;
 
 static void delete_texture(void* uptr) {
 	if (s_ctx.has_texture) {
-		bgfx_destroy_texture(s_ctx.tex);
+		render_destroy_texture(s_ctx.tex);
 		s_ctx.has_texture = false;
 	}
 }
@@ -38,10 +40,10 @@ static void delete_texture(void* uptr) {
 static int resize_texture(void* uptr, int width, int height) {
 	delete_texture(uptr);
 
-	s_ctx.tex = bgfx_create_texture_2d(width, height, false, 1, BGFX_TEXTURE_FORMAT_RGBA8, BGFX_TEXTURE_NONE, NULL);
-	s_ctx.w = width;
-	s_ctx.h = height;
 	s_ctx.has_texture = true;
+	s_ctx.tex         = render_create_texture_rgba8(width, height);
+	s_ctx.w           = width;
+	s_ctx.h           = height;
 
 	return 1;
 }
@@ -60,44 +62,38 @@ static void update_texture(void* uptr, int* rect, const unsigned char* data) {
 	const uint32_t x = rect[0];
 	const uint32_t y = rect[1];
 
-	const bgfx_memory_t* mem = bgfx_alloc(w * h * 4);
-	uint32_t* pixels = (uint32_t*)mem->data;
+	uint32_t* pixels = (uint32_t*)render_update_texture_begin(w * h * 4);
 	for (size_t j = 0; j < h; ++j) {
 		for (size_t i = 0; i < w; ++i) {
-				const uint8_t c = data[(j + y) * s_ctx.w + i + x];
-				pixels[j * w + i] = (c << 24) | 0x00FFFFFF;
-			}
+			const uint8_t c = data[(j + y) * s_ctx.w + i + x];
+			pixels[j * w + i] = (c << 24) | 0x00FFFFFF;
+		}
 	}
 
-	bgfx_update_texture_2d(s_ctx.tex, 0, 0, x, y, w, h, mem, -1);
+	render_update_texture_end(s_ctx.tex, x, y, w, h);
 }
 
 static void render(void* uptr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts) {
 	if (!s_ctx.has_texture) return;
 	
-	bgfx_transient_vertex_buffer_t tvb;
-	bgfx_transient_index_buffer_t  tib;
-
-	bgfx_alloc_transient_buffers(&tvb, render_vdecl(), nverts, &tib, nverts);
-
-	render_vertex_t* vdata = (render_vertex_t*)tvb.data;
+	render_vertex_t* vertices = s_ctx.vertices;
 	for (size_t i = 0; i < nverts; ++i) {
-		vdata[i].x = verts[i * 2 + 0];
-		vdata[i].y = verts[i * 2 + 1];
-		vdata[i].z = 0.0f;
-		vdata[i].u = tcoords[i * 2 + 0];
-		vdata[i].v = tcoords[i * 2 + 1];
-		vdata[i].color = colors[i];
+		vertices[i].x = verts[i * 2 + 0];
+		vertices[i].y = verts[i * 2 + 1];
+		vertices[i].z = 0.0f;
+		vertices[i].u = tcoords[i * 2 + 0];
+		vertices[i].v = tcoords[i * 2 + 1];
+		vertices[i].color = colors[i];
 	}
 
-	uint16_t* idata = (uint16_t*)tib.data;
+	uint16_t* indices = s_ctx.indices;
 	for (size_t i = 0; i < nverts / 3; ++i) {
-		idata[i * 3 + 0] = (uint16_t)(i * 3 + 0);
-		idata[i * 3 + 1] = (uint16_t)(i * 3 + 2);
-		idata[i * 3 + 2] = (uint16_t)(i * 3 + 1);
+		indices[i * 3 + 0] = (uint16_t)(i * 3 + 0);
+		indices[i * 3 + 1] = (uint16_t)(i * 3 + 2);
+		indices[i * 3 + 2] = (uint16_t)(i * 3 + 1);
 	}
 
-	render_transient(&tvb, nverts, &tib, nverts, s_ctx.tex.idx);
+	render_transient(vertices, nverts, indices, nverts, s_ctx.tex);
 }
 
 void render_text_init() {
@@ -147,7 +143,7 @@ void render_load_font(const char* name, const char* path) {
 	fonsAddFontMem(s_ctx.fons, name, data, (int)size, 1);
 }
 
-void render_text(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, bool shadow) {
+void render_text_centered(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, bool shadow) {
 	assert(text);
 
 	int f = fonsGetFontByName(s_ctx.fons, font);

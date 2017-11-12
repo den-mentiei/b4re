@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-// ABGR ? TODO: helpers.
 typedef uint32_t color_t;
 
 typedef struct {
@@ -12,27 +11,27 @@ typedef struct {
 	color_t color;
 } __attribute__((packed)) render_vertex_t;
 
-typedef size_t render_texture_t;
-struct sprite_t;
-
-/* inline color_t render_color(uint8_t r, uint8_t g, uint8_t b) { */
-/* 	return (0xFF << 24) | (b << 16) | (g << 8) | r; */
-/* } */
-
-// TODO: ?
-#define RENDER_COLOR(r, g, b) ((0xFF << 24) | (b << 16) | (g << 8) | r)
+/* struct sprite_t; */
 
 void render_init();
 void render_shutdown();
 
+// TODO: @refactor Move it out - make loading code use low-level texture management code.
+typedef size_t render_texture_t;
 render_texture_t render_load_texture(const char* path);
+
 const struct sprite_t* render_create_sprite(render_texture_t t, float u0, float v0, float u1, float v1);
 void render_sprite(const struct sprite_t* s, float x, float y);
 void render_sprite_colored(const struct sprite_t* s, float x, float y, color_t color);
 
+// TODO: @robustness Static assert that it's enough.
+typedef struct render_tex_t { uint64_t opaque; } render_tex_t;
 
-// TODO: Refactor it.
-typedef uint16_t temp_handle_t;
-void* render_vdecl();
-void render_transient(void* vb, size_t num_vertices, void* ib, size_t num_indices, temp_handle_t tex);
+render_tex_t render_create_texture_rgba8(uint32_t width, uint32_t height);
+void render_destroy_texture(render_tex_t tex);
+
+uint8_t* render_update_texture_begin(size_t size);
+void render_update_texture_end(render_tex_t tex, uint32_t x, uint32_t y, uint32_t w, uint32_t h);
+
+void render_transient(const render_vertex_t* vertices, size_t num_vertices, const uint16_t* indices, size_t num_indices, render_tex_t tex);
 

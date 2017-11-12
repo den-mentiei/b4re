@@ -4,6 +4,7 @@
 #include "session.h"
 #include "input.h"
 #include "render.h"
+#include "render.inl"
 #include "render_text.h"
 #include "generated/assets.h"
 
@@ -39,7 +40,7 @@ static void resource_indicator_render(const indicator_sprites_t* sprites, float 
 
 	y += 32.0f;
 	render_sprite(sprites->time, x, y);
-	render_text("9", "regular", RENDER_COLOR(0, 0, 0), 24.0f, x + 16.0f, y + 16.0f, false);
+	render_text_centered("9", "regular", render_color(0, 0, 0), 24.0f, x + 16.0f, y + 16.0f, false);
 
 	y += 32.0f;
 	for (size_t i = 0; i < NUM_SEGMENTS; ++i) {
@@ -153,5 +154,5 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
 
 	render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
-	render_text("Hello, sailor!", "regular", RENDER_COLOR(255, 255, 255), 24.0f, 512.0f * 0.5f, 16.0f, true);
+	render_text_centered("Hello, sailor!", "regular", render_color(255, 255, 255), 24.0f, 512.0f * 0.5f, 16.0f, true);
 }

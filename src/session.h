@@ -9,8 +9,6 @@ typedef struct resource_t {
 } resource_t;
 
 typedef struct session_t {
-	bool is_valid;
-
 	struct {
 		const char* username;
 		const char* avatar;
