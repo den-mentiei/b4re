@@ -28,6 +28,13 @@ static void logout();
 static void fetch_state();
 /// API END
 
+static bool safe_is_active() {
+	mtx_lock(&s_ctx.lock);
+	bool is_active = s_ctx.is_active;
+	mtx_unlock(&s_ctx.lock);
+	return is_active;
+}
+
 void session_init(struct allocator_t* alloc) {
 	if (mtx_init(&s_ctx.lock, mtx_plain) != thrd_success) log_fatal("[seession] failed to create mutex\n");
 }
@@ -36,6 +43,16 @@ void session_update() {
 	mtx_lock(&s_ctx.lock);
 	memcpy(&s_ctx.current, &s_ctx.synced, sizeof(session_t));
 	mtx_unlock(&s_ctx.lock);
+
+	static bool was_state_fetched = false;
+	if (safe_is_active()) {
+		if (!was_state_fetched) {
+			was_state_fetched = true;
+			fetch_state();
+		}
+	} else {
+		was_state_fetched = false;
+	}
 }
 
 void session_shutdown() {
@@ -43,22 +60,23 @@ void session_shutdown() {
 }
 
 const session_t* session_current() {
-	return &s_ctx.current;
+	return safe_is_active() ? &s_ctx.current : NULL;
 }
 
 void session_start(const char* username, const char* password) {
-	assert(!s_ctx.is_active);
+	assert(!safe_is_active());
 
 	login(username, password);
 }
 
 void session_end() {
-	assert(s_ctx.is_active);
+	assert(safe_is_active());
 
 	logout();
 
-	// TODO: set it only if login was successfull.
+	// TODO: set it only if logout was successfull.
 	mtx_lock(&s_ctx.lock);
+	s_ctx.is_active = false;
 	memset(&s_ctx.synced,  0, sizeof(session_t));
 	mtx_unlock(&s_ctx.lock);
 
@@ -94,7 +112,7 @@ static void login(const char* username, const char* password) {
 	assert(username);
 	assert(password);
 
-	log_info("[session] Login with username=%s\n", username);
+	log_info("[session] Logging in with username=%s\n", username);
 
 	http_form_part_t form[] = {
 		{ "username", username },
@@ -111,6 +129,8 @@ static void login(const char* username, const char* password) {
 }
 
 static void logout() {
+	log_info("[session] Logging out\n");
+
 	http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL);
 }
 
