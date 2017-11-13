@@ -9,8 +9,10 @@
 #include "log.h"
 #include "http.h"
 
+#include "api.h"
+
 static struct {
-	allocator_t alloc;
+	allocator_t* alloc;
 
 	session_t current;
 	session_t synced;
@@ -36,6 +38,9 @@ static bool safe_is_active() {
 }
 
 void session_init(struct allocator_t* alloc) {
+	assert(alloc);
+
+	s_ctx.alloc = alloc;
 	if (mtx_init(&s_ctx.lock, mtx_plain) != thrd_success) log_fatal("[seession] failed to create mutex\n");
 }
 
@@ -96,16 +101,24 @@ void session_end() {
 /* } */
 
 static char* LOGIN_TAG = "login";
+static char* STATE_TAG = "state";
 
 static void http_handler(const uint8_t* data, size_t size, void* payload) {
 	if (payload == LOGIN_TAG) {
 		mtx_lock(&s_ctx.lock);
 		s_ctx.is_active = true;
 		mtx_unlock(&s_ctx.lock);
+	} else if (payload == STATE_TAG) {
+		api_state_t state;
+		bool parsed = api_parse_state(s_ctx.alloc, (const char*)data, &state);
+		if (parsed) {
+			log_info("[session] level = %d | ts = %ul\n", state.player.level, state.timestamp);
+			log_info("[session] Parsed state, we are gucci.\n");
+		}
+	} else {
+		log_info((const char*)data);
+		log_info("\n");
 	}
-
-	log_info((const char*)data);
-	log_info("\n");
 }
 
 static void login(const char* username, const char* password) {
@@ -135,5 +148,5 @@ static void logout() {
 }
 
 static void fetch_state() {
-	http_get("http://ancientlighthouse.com:8080/api/state", http_handler, NULL);
+	http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG);
 }
