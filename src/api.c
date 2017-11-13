@@ -6,23 +6,11 @@
 #include <jsmn.h>
 
 #include "log.h"
-
 #include "allocator.h"
-
-/*typedef struct value_t {
-	
-} value_t;
-
-typedef struct scheme_t {
-	
-} scheme_t;
-
-static const scheme_t test = {
-
-};*/
 
 typedef struct json_t {
 	allocator_t* alloc;
+	const char*  data;
 	size_t       num_tokens;
 	jsmntok_t*   tokens;
 } json_t;
@@ -46,6 +34,7 @@ static json_t* json_parse(struct allocator_t* alloc, const char* data) {
 
 	json_t* json     = BR_ALLOC(alloc, sizeof(json_t));
 	json->alloc      = alloc;
+	json->data       = data;
 	json->num_tokens = num_tokens;
 	json->tokens     = BR_ALLOC(alloc, sizeof(jsmntok_t) * num_tokens);
 
@@ -126,9 +115,8 @@ static int skip(const char* data, const jsmntok_t* t, size_t count) {
 	}
 }
 
-static const jsmntok_t* json_get_value(const json_t* json, const char* data, const jsmntok_t* root, const char* key) {
+static const jsmntok_t* json_get_value(const json_t* json, const jsmntok_t* root, const char* key) {
 	assert(json);
-	assert(data);
 	assert(root);
 	assert(key);
 
@@ -142,10 +130,10 @@ static const jsmntok_t* json_get_value(const json_t* json, const char* data, con
 		const jsmntok_t* kt = root + 1 + j;
 		assert(kt->type == JSMN_STRING);
 		// TODO: @robustness Calculate min between strlen(key) and key string.
-		if (strncmp(data + kt->start, key, kt->end - kt->start) == 0) {
+		if (strncmp(json->data + kt->start, key, kt->end - kt->start) == 0) {
 			return root + 1 + j + 1;
 		} else {
-			j += 1 + skip(data, kt + 1, left - j);
+			j += 1 + skip(json->data, kt + 1, left - j);
 		}
 	}
 
@@ -171,12 +159,12 @@ static inline bool try_parse_uint64(const char* data, const jsmntok_t* t, uint64
 	return true;
 }
 
-static bool try_get_object_number(const json_t* json, const char* data, const jsmntok_t* object, const char* key, uint64_t* out) {
-	const jsmntok_t* value = json_get_value(json, data, object, key);
-	return try_parse_uint64(data, value, out);
+static bool try_get_object_number(const json_t* json, const jsmntok_t* object, const char* key, uint64_t* out) {
+	const jsmntok_t* value = json_get_value(json, object, key);
+	return try_parse_uint64(json->data, value, out);
 }
 
-static bool parse_player(const json_t* json, const char* data, const jsmntok_t* object, api_state_player_t* player) {
+static bool parse_player(const json_t* json, const jsmntok_t* object, api_state_player_t* player) {
 	assert(object);
 	assert(player);
 
@@ -186,7 +174,7 @@ static bool parse_player(const json_t* json, const char* data, const jsmntok_t* 
 	}
 
 	uint64_t number;
-	if (!try_get_object_number(json, data, object, "level", &number)) {
+	if (!try_get_object_number(json, object, "level", &number)) {
 		log_error("[api] state: player: level field is missing or not a number.");
 		return false;
 	}
@@ -205,18 +193,18 @@ bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* s
 	json_t* json = json_parse(alloc, data);
 	if (!json) return false;
 
-	if (!try_get_object_number(json, data, json->tokens, "timestamp", &state->timestamp)) {
+	if (!try_get_object_number(json, json->tokens, "timestamp", &state->timestamp)) {
 		log_error("[api] state: timestamp field is missing or not a number.");
 		CHECK(false);
 	}
 
-	const jsmntok_t* player = json_get_value(json, data, json->tokens, "player");
+	const jsmntok_t* player = json_get_value(json, json->tokens, "player");
 	if (!player) {
 		log_error("[api] state: player field is missing.");
 		CHECK(false);
 	}
 
-	bool player_parsed = parse_player(json, data, player, &state->player);
+	bool player_parsed = parse_player(json, player, &state->player);
 	CHECK(player_parsed);
 
 	json_free(json);
