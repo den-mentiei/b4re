@@ -128,7 +128,7 @@ void render_load_font(const char* name, const char* path) {
 
 	fseek(fp, 0, SEEK_END);
 	size_t size = ftell(fp);
-	fseek(fp, 0 ,SEEK_SET);
+	fseek(fp, 0, SEEK_SET);
 
 	if (!size)
 	{
