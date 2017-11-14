@@ -161,7 +161,7 @@ void render_text(const char* text, float x, float y, const render_text_t* params
 	if (params->color != 0)         fonsSetColor  (s_ctx.fons, params->color);
 	if (params->align != 0)         fonsSetAlign  (s_ctx.fons, params->align);
 
-	if (!params->bounds_w || !params->bounds_h) {
+	if (params->bounds_w || params->bounds_h) {
 		float bounds[4];
 		fonsTextBounds(s_ctx.fons, 0.0f, 0.0f, text, NULL, bounds);
 
@@ -170,8 +170,8 @@ void render_text(const char* text, float x, float y, const render_text_t* params
 		const int maxx = bounds[2];
 		const int maxy = bounds[3];
 
-		if (!params->bounds_w) *params->bounds_w = maxx - minx;
-		if (!params->bounds_h) *params->bounds_h = maxy - miny;
+		if (params->bounds_w) *params->bounds_w = maxx - minx;
+		if (params->bounds_h) *params->bounds_h = maxy - miny;
 	}
 
 	if (params->shadow) {
