@@ -1,5 +1,8 @@
 #include "travel_map.h"
 
+#include <assert.h>
+#include <stdio.h> // snprintf
+
 #include "game.h"
 #include "session.h"
 #include "input.h"
@@ -34,16 +37,25 @@ typedef struct {
 	const struct sprite_t* booster_full;
 
 	const struct sprite_t* regen[10];
+
+	uint32_t color;
+	uint32_t emphasis_color;
 } indicator_sprites_t;
 
-static void resource_indicator_render(const indicator_sprites_t* sprites, float x, float y) {
+static void resource_indicator_render(const resource_t* res, const indicator_sprites_t* sprites, float x, float y) {
+	assert(res);
+	assert(sprites);
+
 	const size_t NUM_SEGMENTS = 12;
 
 	render_sprite(sprites->regen[0], x, y);
 
 	y += 32.0f;
 	render_sprite(sprites->time, x, y);
-	render_text_centered("9", "regular", render_color(0, 0, 0), 24.0f, x + 16.0f, y + 16.0f, false);
+
+	char buf[8];
+	snprintf(buf, 8, "%u", res->regen_rate);
+	render_text_centered(buf, "regular", render_color(0, 0, 0), 24.0f, x + 16.0f, y + 16.0f, false);
 
 	y += 32.0f;
 	for (size_t i = 0; i < NUM_SEGMENTS; ++i) {
@@ -52,12 +64,18 @@ static void resource_indicator_render(const indicator_sprites_t* sprites, float 
 	}
 }
 
-static void resource_indicator_value_render(const indicator_sprites_t* sprites, float x, float y, bool reversed) {
+static void resource_indicator_value_render(const resource_t* res, const indicator_sprites_t* sprites, float x, float y, bool reversed) {
+	assert(res);
+	assert(sprites);
+
 	const size_t NUM_BODY_SEGMENTS = 3;
+
+	const float dx = reversed ? -32.0f : 32.0f;
+	const float tx = x + NUM_BODY_SEGMENTS * dx * 0.5f + (reversed ? 0.0f : 32.0f);
+	const float ty = y + 16.0f;
 
 	render_sprite(sprites->icon, x, y);
 
-	const float dx = reversed ? -32.0f : 32.0f;
 	x += dx;
 
 	for (size_t i = 0; i < NUM_BODY_SEGMENTS; ++i) {
@@ -68,7 +86,19 @@ static void resource_indicator_value_render(const indicator_sprites_t* sprites, 
 	render_sprite(sprites->edge, x, y);
 
 	// TODO: Render values text.
+	// 099/999
+	char buf[8];
+	snprintf(buf, 8, "%03u/%03u", res->value, res->max);
+	render_text_centered(buf, "regular", sprites->color, 28.0f, tx, ty, false);
 }
+
+/*
+string WithZeros(int n, Color normal) {
+	var s = n.ToString();
+	var z = new string('0', 3 - s.Length);
+	return string.Format("{0}{1}", Colored(z, zeros), Colored(s, normal));
+}
+*/
 
 static void coordinates_render(float x, float y) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_beta, x,         y);
@@ -79,6 +109,9 @@ static void coordinates_render(float x, float y) {
 
 static void resources_render() {
 	const indicator_sprites_t mind_sprites = {
+		.color          = render_color(72, 107, 128),
+		.emphasis_color = render_color(86, 199, 250),
+
 		.icon = assets_sprites()->travel_map.indicator_mind_icon,
 		.body = assets_sprites()->travel_map.indicator_mind_body,
 		.edge = assets_sprites()->travel_map.indicator_mind_edge,
@@ -105,6 +138,9 @@ static void resources_render() {
 		}
 	};
 	const indicator_sprites_t matter_sprites = {
+		.color          = render_color(117, 47, 44),
+		.emphasis_color = render_color(236, 74, 39),
+
 		.icon = assets_sprites()->travel_map.indicator_matter_icon,
 		.body = assets_sprites()->travel_map.indicator_matter_body,
 		.edge = assets_sprites()->travel_map.indicator_matter_edge,
@@ -132,11 +168,13 @@ static void resources_render() {
 	};
 
 	// Resources
-	resource_indicator_render(&mind_sprites,   0.0f,           32.0f);
-	resource_indicator_render(&matter_sprites, 512.0f - 32.0f, 32.0f);
+	const resource_t* mind   = &session_current()->player.mind;
+	const resource_t* matter = &session_current()->player.matter;
+	resource_indicator_render(mind,     &mind_sprites,           0.0f, 32.0f);
+	resource_indicator_render(matter, &matter_sprites, 512.0f - 32.0f, 32.0f);
 
-	resource_indicator_value_render(&mind_sprites,   0.0f,           512.0f - 32.0f, false);
-	resource_indicator_value_render(&matter_sprites, 512.0f - 32.0f, 512.0f - 32.0f, true);
+	resource_indicator_value_render(mind,     &mind_sprites,          0.0f,  512.0f - 32.0f, false);
+	resource_indicator_value_render(matter, &matter_sprites, 512.0f - 32.0f, 512.0f - 32.0f, true);
 }
 
 void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
