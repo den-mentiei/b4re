@@ -143,8 +143,9 @@ void render_load_font(const char* name, const char* path) {
 	fonsAddFontMem(s_ctx.fons, name, data, (int)size, 1);
 }
 
-void render_text_centered(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, bool shadow) {
+static void render_text_core(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, int align, bool shadow) {
 	assert(text);
+	assert(font);
 
 	int f = fonsGetFontByName(s_ctx.fons, font);
 	assert(f != FONS_INVALID);
@@ -154,6 +155,7 @@ void render_text_centered(const char* text, const char* font, uint32_t color, fl
 	fonsSetBlur(s_ctx.fons,  0);
 	fonsSetColor(s_ctx.fons, color);
 	fonsSetAlign(s_ctx.fons, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE);
+	fonsSetSpacing(s_ctx.fons, 1.0f);
 
 	if (shadow) {
 		fonsPushState(s_ctx.fons);
@@ -164,4 +166,12 @@ void render_text_centered(const char* text, const char* font, uint32_t color, fl
 	}
 
 	fonsDrawText(s_ctx.fons, x, y, text, NULL);
+}
+
+void render_text(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, bool shadow) {
+	render_text_core(text, font, color, size_pt, x, y, FONS_ALIGN_LEFT | FONS_ALIGN_MIDDLE, shadow);
+}
+
+void render_text_centered(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, bool shadow) {
+	render_text_core(text, font, color, size_pt, x, y, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE, shadow);
 }
