@@ -25,9 +25,9 @@ typedef struct api_state_resource_t {
 } api_state_resource_t;
 
 typedef struct api_state_player_t {
-	const char username[MAX_API_STRING_LENGTH];
-	const char avatar[MAX_API_STRING_LENGTH];
-	const char plane_id[MAX_API_STRING_LENGTH];
+	char username[MAX_API_STRING_LENGTH];
+	char avatar[MAX_API_STRING_LENGTH];
+	char plane_id[MAX_API_STRING_LENGTH];
 
 	uint32_t level;
 	uint32_t exp;

@@ -8,6 +8,10 @@
 #include "log.h"
 #include "allocator.h"
 
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+// TODO: Error checking & reporting.
+
 typedef struct json_t {
 	allocator_t* alloc;
 	const char*  data;
@@ -164,23 +168,61 @@ static bool try_get_object_number(const json_t* json, const jsmntok_t* object, c
 	return try_parse_uint64(json->data, value, out);
 }
 
-static bool parse_player(const json_t* json, const jsmntok_t* object, api_state_player_t* player) {
+static uint64_t get_object_number(const json_t* json, const jsmntok_t* object, const char* key) {
+	uint64_t number;
+	if (!try_get_object_number(json, object, key, &number)) {
+		log_error("[api] state: player: %s field is missing or not a number.\n", key);
+		return 0;
+	}
+	return number;
+}
+
+static void get_object_string(const json_t* json, const jsmntok_t* object, const char* key, char* buf, size_t n) {
+	const jsmntok_t* value = json_get_value(json, object, key);
+	assert(value && value->type == JSMN_STRING);
+
+	size_t value_length = value->end - value->start;
+	size_t copy_length  = MIN(value_length, n - 1);
+	memcpy(buf, json->data + value->start, copy_length);
+	buf[copy_length] = 0;
+}
+
+static void parse_resource(const json_t* json, const jsmntok_t* object, api_state_resource_t* res) {
+	assert(json);
 	assert(object);
+	assert(res);
+
+	res->last_update     = get_object_number(json, object, "last_update");
+	res->booster_time    = get_object_number(json, object, "booster_time");
+	res->value           = get_object_number(json, object, "value");
+	res->max             = get_object_number(json, object, "max");
+	res->regen_rate      = get_object_number(json, object, "regen_rate");
+	res->filled_segments = get_object_number(json, object, "filled_segments");
+	res->segment_time    = get_object_number(json, object, "segment_time");
+}
+
+static void parse_player(const json_t* json, const jsmntok_t* object, api_state_player_t* player) {
+	assert(json);
+	assert(object && object->type == JSMN_OBJECT);
 	assert(player);
 
-	if (object->type != JSMN_OBJECT) {
-		log_error("[api] state: can not parse a player - it is not an object.");
-		return false;
-	}
+	get_object_string(json, object, "username", &player->username[0], MAX_API_STRING_LENGTH);
+	get_object_string(json, object, "avatar",   &player->avatar[0],   MAX_API_STRING_LENGTH);
+	get_object_string(json, object, "plane_id", &player->plane_id[0], MAX_API_STRING_LENGTH);
 
-	uint64_t number;
-	if (!try_get_object_number(json, object, "level", &number)) {
-		log_error("[api] state: player: level field is missing or not a number.");
-		return false;
-	}
-	player->level = number;
+	player->level = get_object_number(json, object, "level");
+	player->exp   = get_object_number(json, object, "experience");
+	player->money = get_object_number(json, object, "money");
+	player->x     = get_object_number(json, object, "x");
+	player->y     = get_object_number(json, object, "y");
 
-	return true;
+	const jsmntok_t* mind   = json_get_value(json, object, "mind");
+	const jsmntok_t* matter = json_get_value(json, object, "matter");
+	assert(mind);
+	assert(matter);
+
+	parse_resource(json,   mind, &player->mind);
+	parse_resource(json, matter, &player->matter);
 }
 
 bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* state) {
@@ -188,24 +230,14 @@ bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* s
 	assert(data);
 	assert(state);
 
-	#define CHECK(cond) if (!(cond)) { json_free(json); return false; }
-
 	json_t* json = json_parse(alloc, data);
 	if (!json) return false;
 
-	if (!try_get_object_number(json, json->tokens, "timestamp", &state->timestamp)) {
-		log_error("[api] state: timestamp field is missing or not a number.");
-		CHECK(false);
-	}
+	state->timestamp = get_object_number(json, json->tokens, "timestamp");
 
 	const jsmntok_t* player = json_get_value(json, json->tokens, "player");
-	if (!player) {
-		log_error("[api] state: player field is missing.");
-		CHECK(false);
-	}
-
-	bool player_parsed = parse_player(json, player, &state->player);
-	CHECK(player_parsed);
+	assert(player);
+	parse_player(json, player, &state->player);
 
 	json_free(json);
 	return true;
