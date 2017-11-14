@@ -88,17 +88,7 @@ void session_end() {
 	memset(&s_ctx.current, 0, sizeof(session_t));
 }
 
-// TODO: Move out?
-
 /// API stuff
-
-/* static int state; */
-
-/* static void test_handler(const uint8_t* data, size_t size, void* payload) { */
-/* 	log_info((const char*)data); */
-/* 	log_info("\n"); */
-/* 	state++; */
-/* } */
 
 static char* LOGIN_TAG = "login";
 static char* STATE_TAG = "state";
@@ -111,10 +101,7 @@ static void http_handler(const uint8_t* data, size_t size, void* payload) {
 	} else if (payload == STATE_TAG) {
 		api_state_t state;
 		bool parsed = api_parse_state(s_ctx.alloc, (const char*)data, &state);
-		if (parsed) {
-			log_info("[session] level = %d | ts = %ul\n", state.player.level, state.timestamp);
-			log_info("[session] Parsed state, we are gucci.\n");
-		}
+		assert(parsed);
 	} else {
 		log_info((const char*)data);
 		log_info("\n");
@@ -133,12 +120,6 @@ static void login(const char* username, const char* password) {
 	};
 
 	http_post_form("http://ancientlighthouse.com:8080/api/login", form, sizeof(form) / sizeof(form[0]), http_handler, LOGIN_TAG);
-
-	/* while (state != 1) {}; */
-
-	/* http_get("http://ancientlighthouse.com:8080/api/state", test_handler, NULL); */
-
-	/* while (state != 2) {}; */
 }
 
 static void logout() {
