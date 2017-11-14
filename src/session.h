@@ -4,8 +4,20 @@
 #include <stdbool.h>
 
 typedef struct resource_t {
-	int32_t value;
-	int32_t max;
+	// Server time in seconds.
+	uint64_t last_update;
+	// Booster time in seconds, 3600s per segment.
+	uint64_t booster_time;
+
+	uint8_t value;
+	uint8_t max;
+
+	// Regen rate, per segment: 0..9 seconds.
+	uint8_t regen_rate;
+	// Currently filled segments: 0..11 segments.
+	uint8_t filled_segments;
+	// Time in current segment: 0..<current rate> seconds.
+	uint8_t segment_time;
 } resource_t;
 
 typedef struct session_t {

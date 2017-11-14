@@ -102,6 +102,12 @@ static void http_handler(const uint8_t* data, size_t size, void* payload) {
 		api_state_t state;
 		bool parsed = api_parse_state(s_ctx.alloc, (const char*)data, &state);
 		assert(parsed);
+
+		mtx_lock(&s_ctx.lock);
+		// TODO: Copy field by field or re-use parsed state.
+		memcpy(&s_ctx.synced.player.mind,     &state.player.mind, sizeof(resource_t));
+		memcpy(&s_ctx.synced.player.matter, &state.player.matter, sizeof(resource_t));
+		mtx_unlock(&s_ctx.lock);
 	} else {
 		log_info((const char*)data);
 		log_info("\n");
