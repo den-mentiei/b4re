@@ -3,6 +3,7 @@
 #import <Cocoa/Cocoa.h>
 
 #include <stdbool.h>
+#include <assert.h>
 
 #include "entry.h"
 #include "log.h"
@@ -53,7 +54,10 @@ static NSEvent* peek_event()
 			];
 }
 
-static void get_mouse_position(float* _x, float *_y) {
+static void get_mouse_position(int* out_x, int* out_y) {
+	assert(out_x);
+	assert(out_y);
+
 	NSWindow* window         = [NSApp keyWindow];
 	NSRect    original_frame = [window frame];
 	NSPoint   location       = [window mouseLocationOutsideOfEventStream];
@@ -62,17 +66,17 @@ static void get_mouse_position(float* _x, float *_y) {
 	int x = location.x;
 	int y = (int)adjust_frame.size.height - (int)location.y;
 
-	if (x < 0) x = 0;
-	if (y < 0) y = 0;
-	if (x > (int)adjust_frame.size.width) x = (int)adjust_frame.size.width;
+	if (x > (int)adjust_frame.size.width)  x = (int)adjust_frame.size.width;
 	if (y > (int)adjust_frame.size.height) y = (int)adjust_frame.size.height;
 
-	*_x = x;
-	*_y = y;
+	*out_x = x;
+	*out_y = y;
 }
 
 static void on_event(NSEvent* e) {
 	if (!e) return;
+
+	int x, y;
 
 	NSEventType type = [e type];
 	switch (type) {
@@ -80,21 +84,29 @@ static void on_event(NSEvent* e) {
 		case NSEventTypeLeftMouseDragged:
 		case NSEventTypeRightMouseDragged:
 		case NSEventTypeOtherMouseDragged:
-			get_mouse_position(&s_ctx.mouse_x, &s_ctx.mouse_y);
+			get_mouse_position(&x, &y);
+			if (x >= 0 && y >= 0) {
+				s_ctx.mouse_x = x;
+				s_ctx.mouse_y = y;
+			}
 			break;
 
 		case NSEventTypeLeftMouseDown:
-			s_ctx.mouse_left = true;
+			get_mouse_position(&x, &y);
+			if (x >= 0 && y >= 0) s_ctx.mouse_left = true;
 			break;
 		case NSEventTypeLeftMouseUp:
-			s_ctx.mouse_left = false;
+			get_mouse_position(&x, &y);
+			if (x >= 0 && y >= 0) s_ctx.mouse_left = false;
 			break;
 
 		case NSEventTypeRightMouseDown:
-			s_ctx.mouse_right = true;
+			get_mouse_position(&x, &y);
+			if (x >= 0 && y >= 0) s_ctx.mouse_right = true;
 			break;
 		case NSEventTypeRightMouseUp:
-			s_ctx.mouse_right = false;
+			get_mouse_position(&x, &y);
+			if (x >= 0 && y >= 0) s_ctx.mouse_right = false;
 			break;
 
 		default:
