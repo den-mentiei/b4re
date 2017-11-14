@@ -13,6 +13,7 @@
 
 static struct {
 	game_state_t state;
+	game_state_t next_state;
 } s_ctx;
 
 bool game_init(int32_t argc, const char* argv[]) {
@@ -27,6 +28,8 @@ bool game_init(int32_t argc, const char* argv[]) {
 }
 
 bool game_update(uint16_t width, uint16_t height, float dt) {
+	s_ctx.state = s_ctx.next_state;
+
 	switch (s_ctx.state) {
 		case GAME_STATE_LOGIN:
 			states_login_update(width, height, dt);
@@ -56,5 +59,5 @@ void game_shutdown() {
 }
 
 void game_state_switch(game_state_t s) {
-	s_ctx.state = s;
+	s_ctx.next_state = s;
 }

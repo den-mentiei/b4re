@@ -178,6 +178,8 @@ static void resources_render() {
 }
 
 void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
+	if (!session_current()) return;
+
 	// TODO: Render map view.
 	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);
 
