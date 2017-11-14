@@ -42,9 +42,9 @@ typedef struct {
 	uint32_t emphasis_color;
 
 	render_text_t text_params;
-} indicator_sprites_t;
+} indicator_rendering_t;
 
-static void resource_indicator_render(const resource_t* res, const indicator_sprites_t* sprites, float x, float y) {
+static void resource_indicator_render(const resource_t* res, const indicator_rendering_t* sprites, float x, float y) {
 	assert(res);
 	assert(sprites);
 
@@ -66,7 +66,7 @@ static void resource_indicator_render(const resource_t* res, const indicator_spr
 	}
 }
 
-static void resource_indicator_value_render(const resource_t* res, const indicator_sprites_t* sprites, float x, float y, bool reversed) {
+static void resource_indicator_value_render(const resource_t* res, const indicator_rendering_t* sprites, float x, float y, bool reversed) {
 	assert(res);
 	assert(sprites);
 
@@ -109,7 +109,7 @@ static void coordinates_render(float x, float y) {
 }
 
 static void resources_render() {
-	const indicator_sprites_t mind_sprites = {
+	const indicator_rendering_t mind_rendering = {
 		.color          = render_color(72, 107, 128),
 		.emphasis_color = render_color(86, 199, 250),
 
@@ -145,7 +145,7 @@ static void resources_render() {
 			assets_sprites()->travel_map.indicator_mind_regenerate_9s,
 		}
 	};
-	const indicator_sprites_t matter_sprites = {
+	const indicator_rendering_t matter_rendering = {
 		.color          = render_color(117, 47, 44),
 		.emphasis_color = render_color(236, 74, 39),
 
@@ -185,34 +185,23 @@ static void resources_render() {
 	// Resources
 	const resource_t* mind   = &session_current()->player.mind;
 	const resource_t* matter = &session_current()->player.matter;
-	resource_indicator_render(mind,     &mind_sprites,           0.0f, 32.0f);
-	resource_indicator_render(matter, &matter_sprites, 512.0f - 32.0f, 32.0f);
+	resource_indicator_render(mind,     &mind_rendering,           0.0f, 32.0f);
+	resource_indicator_render(matter, &matter_rendering, 512.0f - 32.0f, 32.0f);
 
-	resource_indicator_value_render(mind,     &mind_sprites,          0.0f,  512.0f - 32.0f, false);
-	resource_indicator_value_render(matter, &matter_sprites, 512.0f - 32.0f, 512.0f - 32.0f, true);
+	resource_indicator_value_render(mind,     &mind_rendering,           0.0f, 512.0f - 32.0f, false);
+	resource_indicator_value_render(matter, &matter_rendering, 512.0f - 32.0f, 512.0f - 32.0f, true);
 }
 
 void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	if (!session_current()) return;
 
 	// TODO: Render map view.
-	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);
+	render_sprite(assets_sprites()->travel_map.atlas_tiled_warfog, 32.0f, 32.0f);
 
 	// Map chrome.
 	render_sprite(assets_sprites()->travel_map.black_map_frame,    0.0f,  0.0f);
 	render_sprite(assets_sprites()->travel_map.atlas_frame,       32.0f, 32.0f);
-	render_sprite(assets_sprites()->common.header,                32.0f, 0.0);
-	// TODO: Render title text.
-
-	resources_render();
-	coordinates_render(5 * 32.0f, 512.0f - 32.0f);
-
-	// Planets influence
-	render_sprite(assets_sprites()->travel_map.greek_letter_black_alpha, 0.0f,           0.0f);
-	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
-
-	render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
-
+	render_sprite(assets_sprites()->common.header,                32.0f,  0.0f);
 	static const render_text_t title_params = {
 		.font    = "regular",
 		.size_pt = 24.0f,
@@ -220,4 +209,12 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 		.shadow  = true
 	};
 	render_text("Hello, sailor!", 512.0f * 0.5f, 16.0f, &title_params);
+
+	// Planets influence
+	render_sprite(assets_sprites()->travel_map.greek_letter_black_alpha, 0.0f,           0.0f);
+	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
+
+	render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
+	resources_render();
+	coordinates_render(5 * 32.0f, 512.0f - 32.0f);
 }
