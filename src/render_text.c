@@ -143,21 +143,38 @@ void render_load_font(const char* name, const char* path) {
 	fonsAddFontMem(s_ctx.fons, name, data, (int)size, 1);
 }
 
-static void render_text_core(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, int align, bool shadow) {
+void render_text(const char* text, float x, float y, const render_text_t* params) {
 	assert(text);
-	assert(font);
+	assert(params);
+	// TODO: Have a fallback font?
+	assert(params->font);
 
-	int f = fonsGetFontByName(s_ctx.fons, font);
+	int f = fonsGetFontByName(s_ctx.fons, params->font);
 	assert(f != FONS_INVALID);
 
+	fonsClearState(s_ctx.fons);
+	fonsSetAlign(s_ctx.fons, FONS_ALIGN_CENTER | FONS_ALIGN_BASELINE);
 	fonsSetFont(s_ctx.fons,  f);
-	fonsSetSize(s_ctx.fons,  size_pt);
-	fonsSetBlur(s_ctx.fons,  0);
-	fonsSetColor(s_ctx.fons, color);
-	fonsSetAlign(s_ctx.fons, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE);
-	fonsSetSpacing(s_ctx.fons, 1.0f);
 
-	if (shadow) {
+	if (params->size_pt != 0.0f)    fonsSetSize   (s_ctx.fons, params->size_pt);
+	if (params->spacing_pt != 0.0f) fonsSetSpacing(s_ctx.fons, params->spacing_pt);
+	if (params->color != 0)         fonsSetColor  (s_ctx.fons, params->color);
+	if (params->align != 0)         fonsSetAlign  (s_ctx.fons, params->align);
+
+	if (!params->bounds_w || !params->bounds_h) {
+		float bounds[4];
+		fonsTextBounds(s_ctx.fons, 0.0f, 0.0f, text, NULL, bounds);
+
+		const int minx = bounds[0];
+		const int miny = bounds[1];
+		const int maxx = bounds[2];
+		const int maxy = bounds[3];
+
+		if (!params->bounds_w) *params->bounds_w = maxx - minx;
+		if (!params->bounds_h) *params->bounds_h = maxy - miny;
+	}
+
+	if (params->shadow) {
 		fonsPushState(s_ctx.fons);
 		fonsSetBlur(s_ctx.fons,  0);
 		fonsSetColor(s_ctx.fons, 0xFF000000);
@@ -166,12 +183,4 @@ static void render_text_core(const char* text, const char* font, uint32_t color,
 	}
 
 	fonsDrawText(s_ctx.fons, x, y, text, NULL);
-}
-
-void render_text(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, bool shadow) {
-	render_text_core(text, font, color, size_pt, x, y, FONS_ALIGN_LEFT | FONS_ALIGN_MIDDLE, shadow);
-}
-
-void render_text_centered(const char* text, const char* font, uint32_t color, float size_pt, float x, float y, bool shadow) {
-	render_text_core(text, font, color, size_pt, x, y, FONS_ALIGN_CENTER | FONS_ALIGN_MIDDLE, shadow);
 }
