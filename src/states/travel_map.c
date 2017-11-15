@@ -212,11 +212,17 @@ static void resources_render() {
 	resource_indicator_value_render(matter, &matter_rendering, 512.0f - 32.0f, 512.0f - 32.0f, true);
 }
 
+static void render_movement() {
+	const uint8_t x = 3, y = 3;
+	render_sprite(assets_sprites()->avatars.avatar_man2, 32.0f + 64.0f * x, 32.0f + 64.0f * y);
+}
+
 void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	if (!session_current()) return;
 
 	// TODO: Render map view.
 	render_sprite(assets_sprites()->travel_map.atlas_tiled_warfog, 32.0f, 32.0f);
+	render_movement();
 
 	// Map chrome.
 	render_sprite(assets_sprites()->travel_map.black_map_frame,    0.0f,  0.0f);
@@ -234,7 +240,8 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_alpha, 0.0f,           0.0f);
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
 
-	render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
+	// TODO: Should be shown only if player is not visible in the current view.
+	/* render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f); */
 	resources_render();
 	coordinates_render(5 * 32.0f, 512.0f - 32.0f);
 }
