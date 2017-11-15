@@ -41,7 +41,7 @@ void session_init(struct allocator_t* alloc) {
 	assert(alloc);
 
 	s_ctx.alloc = alloc;
-	if (mtx_init(&s_ctx.lock, mtx_plain) != thrd_success) log_fatal("[seession] failed to create mutex\n");
+	if (mtx_init(&s_ctx.lock, mtx_plain) != thrd_success) log_fatal("[seession] failed to create mutex");
 }
 
 void session_update() {
@@ -110,7 +110,7 @@ static void http_handler(const uint8_t* data, size_t size, void* payload) {
 		mtx_unlock(&s_ctx.lock);
 	} else {
 		log_info((const char*)data);
-		log_info("\n");
+		log_info("");
 	}
 }
 
@@ -118,7 +118,7 @@ static void login(const char* username, const char* password) {
 	assert(username);
 	assert(password);
 
-	log_info("[session] Logging in with username=%s\n", username);
+	log_info("[session] Logging in with username=%s", username);
 
 	http_form_part_t form[] = {
 		{ "username", username },
@@ -129,7 +129,7 @@ static void login(const char* username, const char* password) {
 }
 
 static void logout() {
-	log_info("[session] Logging out\n");
+	log_info("[session] Logging out");
 
 	http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL);
 }

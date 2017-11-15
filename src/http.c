@@ -99,7 +99,7 @@ static int worker(void* arg) {
 		// lock is held now.
 	}
 
-	log_info("[http] worker dies\n");
+	log_info("[http] worker dies");
 
 	return 0;
 }
@@ -136,7 +136,7 @@ static CURL* create_easy(const char* url, pending_t* r) {
 	assert(ctx.multi);
 
 	CURL* h = curl_easy_init();
-	if (!h) log_fatal("failed to create an easy curl handle\n");
+	if (!h) log_fatal("failed to create an easy curl handle");
 
 #if DEBUG
 	/* curl_easy_setopt(h, CURLOPT_VERBOSE, 1); */
@@ -161,7 +161,7 @@ static void add_to_multi(CURL* h) {
 	mtx_lock(&ctx.multi_lock);
 
 	CURLMcode err = curl_multi_add_handle(ctx.multi, h);
-	if (err != CURLM_OK) log_fatal("[http] failed to create request - %s\n", curl_multi_strerror(err));
+	if (err != CURLM_OK) log_fatal("[http] failed to create request - %s", curl_multi_strerror(err));
 
 	mtx_unlock(&ctx.multi_lock);
 }
@@ -173,11 +173,11 @@ void http_init(allocator_t* alloc) {
 
 	ctx.pending = pool_create(MAX_RESPONSE_SIZE, RESPONSE_INITIAL_POOL_CAPACITY, alloc);
 
-	if (mtx_init(&ctx.multi_lock, mtx_plain) != thrd_success) log_fatal("[http] failed to create mutex\n");
+	if (mtx_init(&ctx.multi_lock, mtx_plain) != thrd_success) log_fatal("[http] failed to create mutex");
 	if (cnd_init(&ctx.got_work) != thrd_success) log_fatal("[http] failed to create a condvar.");
 
 	CURLcode e = curl_global_init(CURL_GLOBAL_DEFAULT);
-	if (e != CURLE_OK) log_fatal("[http] failed to init curl\n");
+	if (e != CURLE_OK) log_fatal("[http] failed to init curl");
 
 	ctx.multi = curl_multi_init();
 	ctx.share = curl_share_init();
@@ -185,16 +185,16 @@ void http_init(allocator_t* alloc) {
 	curl_share_setopt(ctx.share, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE);
 	curl_share_setopt(ctx.share, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
 
-	if (thrd_create(&ctx.thread, worker, NULL) != thrd_success) log_fatal("[http] failed to create a worker thread\n");
+	if (thrd_create(&ctx.thread, worker, NULL) != thrd_success) log_fatal("[http] failed to create a worker thread");
 
 	// TODO: curl_global_init_mem - pass memory functions.
 
 #if DEBUG
 	const curl_version_info_data* info = curl_version_info(CURLVERSION_NOW);
-	log_info("[http] curl version: %s\n", info->version);
-	log_info("[http] curl ssl version: %s\n", info->ssl_version);
-	log_info("[http] curl ssl: %d\n", (info->features & CURL_VERSION_SSL) == 1);
-	log_info("[http] curl zlib: %d\n", (info->features & CURL_VERSION_LIBZ) == 1);
+	log_info("[http] curl version: %s", info->version);
+	log_info("[http] curl ssl version: %s", info->ssl_version);
+	log_info("[http] curl ssl: %d", (info->features & CURL_VERSION_SSL) == 1);
+	log_info("[http] curl zlib: %d", (info->features & CURL_VERSION_LIBZ) == 1);
 #endif
 }
 
@@ -246,7 +246,7 @@ void http_post_form(const char* url, const http_form_part_t* parts, size_t count
 
 	if (parts && count > 0) {
 		curl_mime* m = curl_mime_init(h);
-		if (!m) log_fatal("[http] failed to create mime data\n");
+		if (!m) log_fatal("[http] failed to create mime data");
 
 		p->mime = m;
 

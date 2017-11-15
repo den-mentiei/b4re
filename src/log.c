@@ -12,10 +12,12 @@
 
 void log_info(const char* format, ...) {
 	PRINT_TO(stdout, format);
+	fprintf(stdout, "\n");
 }
 
 void log_error(const char* format, ...) {
 	PRINT_TO(stderr, format);
+	fprintf(stderr, "\n");
 }
 
 void log_fatal(const char* format, ...) {
