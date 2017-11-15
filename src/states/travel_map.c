@@ -24,7 +24,7 @@ void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 }
 
 typedef struct {
-	const struct sprite_t* icon;
+	const struct sprite_t* icon; 
 	const struct sprite_t* body;
 	const struct sprite_t* edge;
 
@@ -66,40 +66,59 @@ static void resource_indicator_render(const resource_t* res, const indicator_ren
 	}
 }
 
-static void resource_indicator_value_render(const resource_t* res, const indicator_rendering_t* sprites, float x, float y, bool reversed) {
+static void render_value_max(uint8_t value, uint8_t max, float x, float y, const indicator_rendering_t* params) {
+	assert(params);
+
+	char buf[8] = {0};
+
+	render_text_t text_params = params->text_params;
+	float w;
+	text_params.bounds_w = &w;
+	text_params.align    = RENDER_TEXT_ALIGN_LEFT | RENDER_TEXT_ALIGN_MIDDLE;
+	
+	int significant = snprintf(buf, 8, "%u", value);
+	int zeros       = 3 - significant;
+	snprintf(buf, 8, "%0*d", zeros, 0);
+	text_params.color = params->color;
+	render_text(buf, x, y, &text_params);
+	x += w;
+
+	snprintf(buf, 8, "%d", value);
+	text_params.color = params->emphasis_color;
+	render_text(buf, x, y, &text_params);
+	x += w;
+
+	text_params.color = params->color;
+	render_text("/", x, y, &text_params);
+	x += w;
+
+	snprintf(buf, 8, "%03d", max);
+	text_params.color = params->color;
+	render_text(buf, x, y, &text_params);
+}
+
+static void resource_indicator_value_render(const resource_t* res, const indicator_rendering_t* params, float x, float y, bool reversed) {
 	assert(res);
-	assert(sprites);
+	assert(params);
 
 	const size_t NUM_BODY_SEGMENTS = 3;
-
 	const float dx = reversed ? -32.0f : 32.0f;
-	//const float tx = x + NUM_BODY_SEGMENTS * dx * 0.5f + (reversed ? 0.0f : 32.0f);
-	//const float ty = y + 16.0f;
 
-	render_sprite(sprites->icon, x, y);
+	const float tx = x + (reversed ? (dx * NUM_BODY_SEGMENTS) : 32.0f + 8.0f);
+	const float ty = y + 16.0f;
 
+	render_sprite(params->icon, x, y);
 	x += dx;
 
 	for (size_t i = 0; i < NUM_BODY_SEGMENTS; ++i) {
-		render_sprite(sprites->body, x, y);
+		render_sprite(params->body, x, y);
 		x += dx;
 	}
 	
-	render_sprite(sprites->edge, x, y);
+	render_sprite(params->edge, x, y);
 
-	// TODO: Render values text.
-	// 099/999
-	char buf[8];
-	snprintf(buf, 8, "%03u/%03u", res->value, res->max);
+	render_value_max(res->value, res->max, tx, ty, params);
 }
-
-/*
-string WithZeros(int n, Color normal) {
-	var s = n.ToString();
-	var z = new string('0', 3 - s.Length);
-	return string.Format("{0}{1}", Colored(z, zeros), Colored(s, normal));
-}
-*/
 
 static void coordinates_render(float x, float y) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_beta, x,         y);
@@ -114,10 +133,11 @@ static void resources_render() {
 		.emphasis_color = render_color(86, 199, 250),
 
 		.text_params = {
-			.font    = "regular",
-			.size_pt = 24.0f,
-			.color   = render_color(0, 0, 0),
-			.align   = RENDER_TEXT_ALIGN_CENTER | RENDER_TEXT_ALIGN_MIDDLE,
+			.font       = "regular",
+			.size_pt    = 26.0f,
+			.spacing_pt = 1.0f,
+			.color      = render_color(0, 0, 0),
+			.align      = RENDER_TEXT_ALIGN_CENTER | RENDER_TEXT_ALIGN_MIDDLE,
 		},
 
 		.icon = assets_sprites()->travel_map.indicator_mind_icon,
@@ -151,7 +171,7 @@ static void resources_render() {
 
 		.text_params = {
 			.font    = "regular",
-			.size_pt = 24.0f,
+			.size_pt = 26.0f,
 			.color   = render_color(0, 0, 0),
 			.align   = RENDER_TEXT_ALIGN_CENTER | RENDER_TEXT_ALIGN_MIDDLE,
 		},
@@ -204,7 +224,7 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_sprite(assets_sprites()->common.header,                32.0f,  0.0f);
 	static const render_text_t title_params = {
 		.font    = "regular",
-		.size_pt = 24.0f,
+		.size_pt = 26.0f,
 		.align   = RENDER_TEXT_ALIGN_CENTER | RENDER_TEXT_ALIGN_MIDDLE,
 		.shadow  = true
 	};

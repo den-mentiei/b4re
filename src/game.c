@@ -21,8 +21,8 @@ bool game_init(int32_t argc, const char* argv[]) {
 
 	render_load_font("regular", "assets/fonts/Ancient_Lighthouse_Regular.otf");
 
-	/* session_start("den", "den_pass"); */
-	/* game_state_switch(GAME_STATE_MAP); */
+	session_start("den", "den_pass");
+	game_state_switch(GAME_STATE_MAP);
 
 	return true;
 }
