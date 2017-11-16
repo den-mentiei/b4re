@@ -271,11 +271,61 @@ static void resource_indicator_value_render(const resource_t* res, const indicat
 	render_value_max(res->value, res->max, tx, ty, params);
 }
 
-static void coordinates_render(float x, float y) {
+static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_y) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_beta, x,         y);
 	render_sprite(assets_sprites()->travel_map.dice_5p_brown,           x + 32.0f, y);
 
-	// TODO: Render value text.
+	char buf[8] = {0};
+
+	float w;
+	render_text_t text_params = {
+		.font       = "regular",
+		.size_pt    = 30.0f,
+		.bounds_w   = &w,
+		.align      = RENDER_TEXT_ALIGN_LEFT | RENDER_TEXT_ALIGN_MIDDLE,
+	};
+	
+	x += 32.0f * 2 + 8.0f;
+	y += 16.0f;
+
+	const char* we = tiles_x <= 127 ? "W" : "E";
+	const char* ns = tiles_y <= 127 ? "N" : "S";
+	const int   dx = tiles_x <= 127 ? 128 - tiles_x : tiles_x - 127;
+	const int   dy = tiles_y <= 127 ? 128 - tiles_y : tiles_y - 127;
+
+	text_params.color = render_color(255, 255, 255);
+	render_text(ns, x, y, &text_params);
+	x += w;
+
+	int significant = snprintf(buf, 8, "%u", dx);
+	int zeros       = 3 - significant;
+	snprintf(buf, 8, "%0*d", zeros, 0);
+	text_params.color = render_color(48, 48, 54);
+	render_text(buf, x, y, &text_params);
+	x += w;
+
+	snprintf(buf, 8, "%d", dx);
+	text_params.color = render_color(143, 54, 33);
+	render_text(buf, x, y, &text_params);
+	x += w;
+
+	x += 8.0f;
+
+	text_params.color = render_color(255, 255, 255);
+	render_text(we, x, y, &text_params);
+	x += w;
+
+	significant = snprintf(buf, 8, "%u", dy);
+	zeros       = 3 - significant;
+	snprintf(buf, 8, "%0*d", zeros, 0);
+	text_params.color = render_color(48, 48, 54);
+	render_text(buf, x, y, &text_params);
+	x += w;
+
+	snprintf(buf, 8, "%d", dy);
+	text_params.color = render_color(143, 54, 33);
+	render_text(buf, x, y, &text_params);
+	x += w;
 }
 
 static void resources_render() {
@@ -396,5 +446,5 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	// TODO: Should be shown only if player is not visible in the current view.
 	/* render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f); */
 	resources_render();
-	coordinates_render(5 * 32.0f, 512.0f - 32.0f);
+	coordinates_render(5 * 32.0f, 512.0f - 32.0f, 64, 32);
 }
