@@ -229,10 +229,12 @@ static void render_value_max(uint8_t value, uint8_t max, float x, float y, const
 	
 	int significant = snprintf(buf, 8, "%u", value);
 	int zeros       = 3 - significant;
-	snprintf(buf, 8, "%0*d", zeros, 0);
-	text_params.color = params->color;
-	render_text(buf, x, y, &text_params);
-	x += w;
+	if (zeros > 0) {
+		snprintf(buf, 8, "%0*d", zeros, 0);
+		text_params.color = params->color;
+		render_text(buf, x, y, &text_params);
+		x += w;
+	}
 
 	snprintf(buf, 8, "%d", value);
 	text_params.color = params->emphasis_color;
@@ -299,10 +301,12 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 
 	int significant = snprintf(buf, 8, "%u", dx);
 	int zeros       = 3 - significant;
-	snprintf(buf, 8, "%0*d", zeros, 0);
-	text_params.color = render_color(48, 48, 54);
-	render_text(buf, x, y, &text_params);
-	x += w;
+	if (zeros > 0) {
+		snprintf(buf, 8, "%0*d", zeros, 0);
+		text_params.color = render_color(48, 48, 54);
+		render_text(buf, x, y, &text_params);
+		x += w;
+	}
 
 	snprintf(buf, 8, "%d", dx);
 	text_params.color = render_color(143, 54, 33);
@@ -317,10 +321,12 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 
 	significant = snprintf(buf, 8, "%u", dy);
 	zeros       = 3 - significant;
-	snprintf(buf, 8, "%0*d", zeros, 0);
-	text_params.color = render_color(48, 48, 54);
-	render_text(buf, x, y, &text_params);
-	x += w;
+	if (zeros > 0) {
+		snprintf(buf, 8, "%0*d", zeros, 0);
+		text_params.color = render_color(48, 48, 54);
+		render_text(buf, x, y, &text_params);
+		x += w;
+	}
 
 	snprintf(buf, 8, "%d", dy);
 	text_params.color = render_color(143, 54, 33);
@@ -446,5 +452,5 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	// TODO: Should be shown only if player is not visible in the current view.
 	/* render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f); */
 	resources_render();
-	coordinates_render(5 * 32.0f, 512.0f - 32.0f, 64, 32);
+	coordinates_render(5 * 32.0f, 512.0f - 32.0f, s_ctx.tile_x, s_ctx.tile_y);
 }
