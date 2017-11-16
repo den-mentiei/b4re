@@ -148,9 +148,6 @@ static void render_scroll() {
 	render_sprite(assets_sprites()->travel_map.mapnet, gx + 256.0f, gy + 256.0f);
 }
 
-void states_travel_map_init() {
-}
-
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 	if (!s_ctx.scrolling && input_button_pressed(INPUT_BUTTON_LEFT)) {
 		start_scroll();
