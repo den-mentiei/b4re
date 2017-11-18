@@ -53,9 +53,9 @@ static json_t* json_parse(struct allocator_t* alloc, const char* data) {
 
 static int dump(const char* data, const jsmntok_t* t, size_t count, int indent) {
 	int i, j, k;
-	if (count == 0) {
-		return 0;
-	}
+
+	if (count == 0) return 0;
+
 	if (t->type == JSMN_PRIMITIVE) {
 		log_info("%.*s", t->end - t->start, data+t->start);
 		return 1;
@@ -90,9 +90,7 @@ static int dump(const char* data, const jsmntok_t* t, size_t count, int indent) 
 static int skip(const char* data, const jsmntok_t* t, size_t count) {
 	int j;
 
-	if (count == 0) {
-		return 0;
-	}
+	if (count == 0) return 0;
 
 	switch (t->type) {
 		case JSMN_PRIMITIVE:
