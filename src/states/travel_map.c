@@ -217,6 +217,31 @@ static void resource_indicator_render(const resource_t* res, const indicator_ren
 	}
 }
 
+static float render_value_with_zeros(uint8_t value, float x, float y, color_t zeros, color_t emphasis, const render_text_t* text_params) {
+	assert(text_params);
+
+	char buf[8] = {0};
+
+	float w;
+	render_text_t params = *text_params;
+	params.bounds_w = &w;
+
+	int significant = snprintf(buf, 8, "%u", value);
+	int num_zeros   = 3 - significant;
+	if (num_zeros > 0) {
+		snprintf(buf, 8, "%0*d", num_zeros, 0);
+		params.color = zeros;
+		render_text(buf, x, y, &params);
+		x += w;
+	}
+	snprintf(buf, 8, "%d", value);
+	params.color = emphasis;
+	render_text(buf, x, y, &params);
+	x += w;
+
+	return x;
+}
+
 static void render_value_max(uint8_t value, uint8_t max, float x, float y, const indicator_rendering_t* params) {
 	assert(params);
 
@@ -227,19 +252,7 @@ static void render_value_max(uint8_t value, uint8_t max, float x, float y, const
 	text_params.bounds_w = &w;
 	text_params.align    = RENDER_TEXT_ALIGN_LEFT | RENDER_TEXT_ALIGN_MIDDLE;
 	
-	int significant = snprintf(buf, 8, "%u", value);
-	int zeros       = 3 - significant;
-	if (zeros > 0) {
-		snprintf(buf, 8, "%0*d", zeros, 0);
-		text_params.color = params->color;
-		render_text(buf, x, y, &text_params);
-		x += w;
-	}
-
-	snprintf(buf, 8, "%d", value);
-	text_params.color = params->emphasis_color;
-	render_text(buf, x, y, &text_params);
-	x += w;
+	x = render_value_with_zeros(value, x, y, params->color, params->emphasis_color, &text_params);
 
 	text_params.color = params->color;
 	render_text("/", x, y, &text_params);
@@ -286,6 +299,8 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 		.bounds_w   = &w,
 		.align      = RENDER_TEXT_ALIGN_LEFT | RENDER_TEXT_ALIGN_MIDDLE,
 	};
+	const color_t zeros_color    = render_color(48, 48, 54);
+	const color_t emphasis_color = render_color(143, 54, 33); 
 	
 	x += 32.0f * 2 + 8.0f;
 	y += 16.0f;
@@ -299,19 +314,7 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 	render_text(ns, x, y, &text_params);
 	x += w;
 
-	int significant = snprintf(buf, 8, "%u", dx);
-	int zeros       = 3 - significant;
-	if (zeros > 0) {
-		snprintf(buf, 8, "%0*d", zeros, 0);
-		text_params.color = render_color(48, 48, 54);
-		render_text(buf, x, y, &text_params);
-		x += w;
-	}
-
-	snprintf(buf, 8, "%d", dx);
-	text_params.color = render_color(143, 54, 33);
-	render_text(buf, x, y, &text_params);
-	x += w;
+	x = render_value_with_zeros(dx, x, y, zeros_color, emphasis_color, &text_params);
 
 	x += 8.0f;
 
@@ -319,19 +322,7 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 	render_text(we, x, y, &text_params);
 	x += w;
 
-	significant = snprintf(buf, 8, "%u", dy);
-	zeros       = 3 - significant;
-	if (zeros > 0) {
-		snprintf(buf, 8, "%0*d", zeros, 0);
-		text_params.color = render_color(48, 48, 54);
-		render_text(buf, x, y, &text_params);
-		x += w;
-	}
-
-	snprintf(buf, 8, "%d", dy);
-	text_params.color = render_color(143, 54, 33);
-	render_text(buf, x, y, &text_params);
-	x += w;
+	x = render_value_with_zeros(dy, x, y, zeros_color, emphasis_color, &text_params);
 }
 
 static void resources_render() {
@@ -420,7 +411,7 @@ static void resources_render() {
 }
 
 static void render_movement() {
-	const uint8_t x = 3, y = 3;
+	//const uint8_t x = 3, y = 3;
 	/* render_sprite(assets_sprites()->avatars.avatar_man2, 32.0f + 64.0f * x, 32.0f + 64.0f * y); */
 }
 
