@@ -56,6 +56,7 @@ static void stop_scroll() {
 	s_ctx.scrolling = false;
 }
 
+// TODO: Make it equal to 7 and factor out +1 to scroll padding or whatever.
 static const size_t VIEW_TILES   = 8;
 static const size_t PLANE_TILES  = 256;
 static const float  TILE         = 64.0f;
@@ -149,25 +150,40 @@ static void render_scroll() {
 }
 
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
-	if (!s_ctx.scrolling && input_button_pressed(INPUT_BUTTON_LEFT)) {
-		start_scroll();
-		return;
+	static int frame = 0;
+	if (input_button_pressed(INPUT_BUTTON_LEFT)) {
+		log_info("[travel map] button pressed - %d", frame);
 	}
-
-	if (s_ctx.scrolling) {
-		if (input_button_released(INPUT_BUTTON_LEFT)) {
-			stop_scroll();
-		} else {
-			update_scroll();
-		}
-		return;
-	}
-
 	if (input_button_released(INPUT_BUTTON_LEFT)) {
-		if (session_current()) {
-			session_end();
-		}
+		log_info("[travel map] button released - %d", frame);
 	}
+	if (input_button_clicked(INPUT_BUTTON_LEFT)) {
+		log_info("[travel map] button clicked - %d", frame);
+	}
+	if (input_dragging(INPUT_BUTTON_LEFT)) {
+		float dx, dy;
+		input_drag_delta(INPUT_BUTTON_LEFT, &dx, &dy);
+		log_info("[travel map] dragging for %.2f, %.2f", dx, dy);
+	}
+	++frame;
+
+	/* if (!was_clicked) { */
+	/* 	if (!s_ctx.scrolling && input_button_pressed(INPUT_BUTTON_LEFT)) { */
+	/* 		log_info("[travel map] scroll started"); */
+	/* 		start_scroll(); */
+	/* 	} else if (s_ctx.scrolling) { */
+	/* 		if (input_button_released(INPUT_BUTTON_LEFT)) { */
+	/* 			log_info("[travel map] scroll stopped"); */
+	/* 			stop_scroll(); */
+	/* 		} else { */
+	/* 			update_scroll(); */
+	/* 		} */
+	/* 	} else if (input_button_released(INPUT_BUTTON_LEFT)) { */
+	/* 		if (session_current()) { */
+	/* 			session_end(); */
+	/* 		} */
+	/* 	} */
+	/* } */
 
 	if (!session_current()) {
 		game_state_switch(GAME_STATE_LOGIN);
