@@ -332,7 +332,7 @@ static void resources_render() {
 
 		.text_params = {
 			.font       = "regular",
-			.size_pt    = 26.0f,
+			.size_pt    = 28.0f,
 			.spacing_pt = 1.0f,
 			.color      = render_color(0, 0, 0),
 			.align      = RENDER_TEXT_ALIGN_CENTER | RENDER_TEXT_ALIGN_MIDDLE,
@@ -369,7 +369,7 @@ static void resources_render() {
 
 		.text_params = {
 			.font    = "regular",
-			.size_pt = 26.0f,
+			.size_pt = 28.0f,
 			.color   = render_color(0, 0, 0),
 			.align   = RENDER_TEXT_ALIGN_CENTER | RENDER_TEXT_ALIGN_MIDDLE,
 		},
@@ -411,7 +411,7 @@ static void resources_render() {
 }
 
 static void render_movement() {
-	//const uint8_t x = 3, y = 3;
+	/* const uint8_t x = 3, y = 3; */
 	/* render_sprite(assets_sprites()->avatars.avatar_man2, 32.0f + 64.0f * x, 32.0f + 64.0f * y); */
 }
 
@@ -430,7 +430,7 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_sprite(assets_sprites()->common.header,                32.0f,  0.0f);
 	static const render_text_t title_params = {
 		.font    = "regular",
-		.size_pt = 26.0f,
+		.size_pt = 28.0f,
 		.align   = RENDER_TEXT_ALIGN_CENTER | RENDER_TEXT_ALIGN_MIDDLE,
 		.shadow  = true
 	};
