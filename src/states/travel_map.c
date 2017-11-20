@@ -387,15 +387,13 @@ static void render_selector() {
 	const float SELECTOR_OFFSET = -TILE * 0.5f;
 
 	// TODO: @refactor Move it out into a common converter.
-	const int tile_x = s_ctx.selector_x - s_ctx.tile_x;
-	const int tile_y = s_ctx.selector_y - s_ctx.tile_y;
+	const int32_t tile_x = s_ctx.selector_x - s_ctx.tile_x;
+	const int32_t tile_y = s_ctx.selector_y - s_ctx.tile_y;
 
 	// TODO: @refactor Move it out into a common check.
-	// TODO: Fix it!
-	/* if (!(tile_x >= s_ctx.tile_x && tile_x < s_ctx.tile_x + VIEW_TILES && */
-	/* 	  tile_y >= s_ctx.tile_y && tile_y < s_ctx.tile_y + VIEW_TILES)) { */
-	/* 	return; */
-	/* } */
+	if (!(tile_x >= 0 && tile_x < VIEW_TILES && tile_y >= 0 && tile_y < VIEW_TILES)) {
+		return;
+	}
 
 	const float x = VIEW_OFFSET + s_ctx.map_x + tile_x * TILE + SELECTOR_OFFSET;
 	const float y = VIEW_OFFSET + s_ctx.map_y + tile_y * TILE + SELECTOR_OFFSET;
