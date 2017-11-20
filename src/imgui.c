@@ -53,6 +53,20 @@ void imgui_post_update() {
 	}
 }
 
+// TODO: @refactor Move out common parts from imgui_button.
+bool imgui_button_invisible(int64_t id, float x, float y, float w, float h) {
+	assert(id > 0);
+
+	if (is_mouse_hit(x, y, w, h)) {
+		s_ctx.hot = id;
+		if (s_ctx.active == 0 && s_ctx.down) {
+			s_ctx.active = id;
+		}
+	}
+
+	return !s_ctx.down && s_ctx.hot == id && s_ctx.active == id;
+}
+
 bool imgui_button(int64_t id, const struct sprite_t* s, float x, float y, int w, int h) {
 	assert(id > 0);
 
