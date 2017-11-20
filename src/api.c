@@ -125,14 +125,16 @@ static const jsmntok_t* json_get_value(const json_t* json, const jsmntok_t* root
 	if (json->num_tokens == 0)     return NULL;
 	if (root->type != JSMN_OBJECT) return NULL;
 
-	const size_t left = json->num_tokens - (root - json->tokens);
+	const size_t key_length = strlen(key);
+	const size_t left       = json->num_tokens - (root - json->tokens);
 
 	size_t j = 0;
 	for (size_t i = 0; i < root->size; ++i) {
 		const jsmntok_t* kt = root + 1 + j;
 		assert(kt->type == JSMN_STRING);
-		// TODO: @robustness Calculate min between strlen(key) and key string.
-		if (strncmp(json->data + kt->start, key, kt->end - kt->start) == 0) {
+
+		const size_t value_length = kt->end - kt->start;
+		if (value_length == key_length && strncmp(json->data + kt->start, key, key_length) == 0) {
 			return root + 1 + j + 1;
 		} else {
 			j += 1 + skip(json->data, kt + 1, left - j);
