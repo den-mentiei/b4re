@@ -205,8 +205,9 @@ typedef struct {
 
 	const struct sprite_t* regen[10];
 
-	uint32_t color;
-	uint32_t emphasis_color;
+	uint32_t zeros_color;
+	uint32_t value_color;
+	uint32_t max_color;
 
 	render_text_t text_params;
 } indicator_rendering_t;
@@ -268,15 +269,13 @@ static void render_value_max(uint8_t value, uint8_t max, float x, float y, const
 	text_params.bounds_w = &w;
 	text_params.align    = RENDER_TEXT_ALIGN_LEFT | RENDER_TEXT_ALIGN_MIDDLE;
 	
-	x = render_value_with_zeros(value, x, y, params->color, params->emphasis_color, &text_params);
+	x = render_value_with_zeros(value, x, y, params->zeros_color, params->value_color, &text_params);
 
-	text_params.color = params->color;
+	text_params.color = params->max_color;
 	render_text("/", x, y, &text_params);
 	x += w;
 
-	snprintf(buf, 8, "%03d", max);
-	text_params.color = params->color;
-	render_text(buf, x, y, &text_params);
+	render_value_with_zeros(max, x, y, params->zeros_color, params->max_color, &text_params);
 }
 
 static void resource_indicator_value_render(const resource_t* res, const indicator_rendering_t* params, float x, float y, bool reversed) {
@@ -299,7 +298,8 @@ static void resource_indicator_value_render(const resource_t* res, const indicat
 	
 	render_sprite(params->edge, x, y);
 
-	render_value_max(res->value, res->max, tx, ty, params);
+	/* render_value_max(res->value, res->max, tx, ty, params); */
+	render_value_max(0, res->max, tx, ty, params);
 }
 
 static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_y) {
@@ -343,8 +343,9 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 
 static void resources_render() {
 	const indicator_rendering_t mind_rendering = {
-		.color          = render_color(72, 107, 128),
-		.emphasis_color = render_color(86, 199, 250),
+		.zeros_color  = render_color(0x0D, 0x27, 0x34),
+		.value_color = render_color(0x00, 0xC8, 0xFF),
+		.max_color   = render_color(0x3F, 0x6C, 0x83),
 
 		.text_params = {
 			.font       = "regular",
@@ -380,8 +381,9 @@ static void resources_render() {
 		}
 	};
 	const indicator_rendering_t matter_rendering = {
-		.color          = render_color(117, 47, 44),
-		.emphasis_color = render_color(236, 74, 39),
+		.zeros_color  = render_color(0x2D, 0x07, 0x07),
+		.value_color = render_color(0xFF, 0x37, 0x00),
+		.max_color   = render_color(0x7E, 0x29, 0x29),
 
 		.text_params = {
 			.font    = "regular",
