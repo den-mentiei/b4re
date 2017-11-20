@@ -79,7 +79,7 @@ static void update_scroll() {
 	s_ctx.tile_y = new_ty;
 }
 
-static void render_scroll() {
+static void render_map_view() {
 	const render_text_t DEBUG_TEXT = {
 		.font    = "regular",
 		.size_pt = 16.0f,
@@ -379,22 +379,87 @@ static void render_movement() {
 static void render_selector() {
 	const float SELECTOR_OFFSET = -TILE * 0.5f;
 
+	// TODO: @refactor Move it out into a common converter.
 	const int tile_x = s_ctx.selector_x - s_ctx.tile_x;
 	const int tile_y = s_ctx.selector_y - s_ctx.tile_y;
 
-	if (tile_x >= s_ctx.tile_x && tile_x < s_ctx.tile_x + VIEW_TILES &&
-		tile_y >= s_ctx.tile_y && tile_y < s_ctx.tile_y + VIEW_TILES) {
-		return;
-	}
+	// TODO: @refactor Move it out into a common check.
+	// TODO: Fix it!
+	/* if (!(tile_x >= s_ctx.tile_x && tile_x < s_ctx.tile_x + VIEW_TILES && */
+	/* 	  tile_y >= s_ctx.tile_y && tile_y < s_ctx.tile_y + VIEW_TILES)) { */
+	/* 	return; */
+	/* } */
 
 	const float x = VIEW_OFFSET + s_ctx.map_x + tile_x * TILE + SELECTOR_OFFSET;
 	const float y = VIEW_OFFSET + s_ctx.map_y + tile_y * TILE + SELECTOR_OFFSET;
 	render_sprite(assets_sprites()->common.selector_location, x, y);
 }
 
+static int8_t dir(uint32_t from, uint32_t to) {
+	const int32_t d = to - from;
+	if (d >= 1) {
+		return 1;
+	}
+	if (d <= -1) {
+		return -1;
+	}
+	return 0;
+}
+
+static struct {
+	int8_t  dx;
+	int8_t  dy;
+	uint8_t i;
+} s_compass_lookup[] = {
+	{ -1, -1, 0 },
+	{  0, -1, 1 },
+	{  1, -1, 2 },
+	{ -1,  0, 3 },
+	{  1,  0, 4 },
+	{ -1,  1, 5 },
+	{  0,  1, 6 },
+	{  1,  1, 7 },
+};
+
+static uint8_t lookup_compass_sprite(uint32_t px, uint32_t py, uint32_t cx, uint32_t cy) {
+	const size_t NUM_SPRITES = sizeof(s_compass_lookup) / sizeof(s_compass_lookup[0]);
+
+	const int8_t dx = dir(cx, px);
+	const int8_t dy = dir(cy, py);
+
+	for (size_t i = 0; i < NUM_SPRITES; ++i) {
+		if (s_compass_lookup[i].dx == dx && s_compass_lookup[i].dy == dy) {
+			return s_compass_lookup[i].i;
+		}
+	}
+
+	return 0;
+}
+
 static void render_compass() {
-	// TODO: Should be shown only if player is not visible in the current view.
-	/* render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f); */
+	const uint32_t px = session_current()->player.x;
+	const uint32_t py = session_current()->player.y;
+	const uint32_t cx = s_ctx.tile_x + VIEW_TILES / 2;
+	const uint32_t cy = s_ctx.tile_y + VIEW_TILES / 2;
+
+	const int32_t tx = px - s_ctx.tile_x;
+	const int32_t ty = py - s_ctx.tile_y;
+
+	bool is_player_visible = tx >= 0 && tx < VIEW_TILES && ty >= 0 && ty < VIEW_TILES;
+	if (is_player_visible) return;
+
+	const struct sprite_t* sprites[] = {
+		assets_sprites()->travel_map.button_compass_nw,
+		assets_sprites()->travel_map.button_compass_n,
+		assets_sprites()->travel_map.button_compass_ne,
+		assets_sprites()->travel_map.button_compass_w,
+		assets_sprites()->travel_map.button_compass_e,
+		assets_sprites()->travel_map.button_compass_sw,
+		assets_sprites()->travel_map.button_compass_s,
+		assets_sprites()->travel_map.button_compass_se,
+	};
+	const struct sprite_t* s = sprites[lookup_compass_sprite(px, py, cx, cy)];
+	render_sprite(s, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
 }
 
 static void render_player() {
@@ -438,8 +503,8 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	// TODO: Render map view.
 	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);
 
+	render_map_view();
 	render_movement();
-	render_scroll();
 	render_player();
 	render_selector();
 	render_chrome();
