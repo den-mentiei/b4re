@@ -122,8 +122,16 @@ void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 	if (!session_current()) return;
 
 	if (s_ctx.selector_x == -1 && s_ctx.selector_y == -1) {
-		s_ctx.selector_x = session_current()->player.x;
-		s_ctx.selector_y = session_current()->player.y;
+		const uint32_t px = session_current()->player.x;
+		const uint32_t py = session_current()->player.y;
+
+		const uint32_t OFFSET_TO_CENTER = VIEW_TILES / 2;
+
+		s_ctx.tile_x = px - OFFSET_TO_CENTER;
+		s_ctx.tile_y = py - OFFSET_TO_CENTER;
+
+		s_ctx.selector_x = px;
+		s_ctx.selector_y = py;
 	}
 
 	if (input_dragging(INPUT_BUTTON_LEFT)) {
