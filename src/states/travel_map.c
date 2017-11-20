@@ -387,14 +387,18 @@ static void render_movement() {
 }
 
 static void render_selector() {
+	const float SELECTOR_OFFSET = -TILE * 0.5f;
+
 	const int tile_x = s_ctx.selector_x - s_ctx.tile_x;
 	const int tile_y = s_ctx.selector_y - s_ctx.tile_y;
+
 	if (tile_x >= s_ctx.tile_x && tile_x < s_ctx.tile_x + VIEW_TILES &&
 		tile_y >= s_ctx.tile_y && tile_y < s_ctx.tile_y + VIEW_TILES) {
 		return;
 	}
-	const float x = s_ctx.map_x + tile_x * TILE;
-	const float y = s_ctx.map_y + tile_y * TILE;
+
+	const float x = VIEW_OFFSET + s_ctx.map_x + tile_x * TILE + SELECTOR_OFFSET;
+	const float y = VIEW_OFFSET + s_ctx.map_y + tile_y * TILE + SELECTOR_OFFSET;
 	render_sprite(assets_sprites()->common.selector_location, x, y);
 }
 
