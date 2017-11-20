@@ -253,8 +253,7 @@ static void resource_indicator_value_render(const resource_t* res, const indicat
 	
 	render_sprite(params->edge, x, y);
 
-	/* render_value_max(res->value, res->max, tx, ty, params); */
-	render_value_max(0, res->max, tx, ty, params);
+	render_value_max(res->value, res->max, tx, ty, params);
 }
 
 static void render_coordinates(float x, float y, uint8_t tiles_x, uint8_t tiles_y) {
