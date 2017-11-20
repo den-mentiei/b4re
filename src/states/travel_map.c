@@ -29,18 +29,6 @@ static struct {
 	int selector_y;
 } s_ctx;
 
-typedef struct rect_t {
-	float x, y;
-	float w, h;
-} rect_t;
-
-static inline bool is_in_rect(float x, float y, const rect_t* rect) {
-	assert(rect);
-
-	return x >= rect->x && x < rect->x + rect->w
-		&& y >= rect->y && y < rect->y + rect->h;
-}
-
 static void update_scroll() {
 	float x, y;
 	input_position(&x, &y);
