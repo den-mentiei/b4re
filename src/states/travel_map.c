@@ -20,11 +20,6 @@ static const float  VIEW_SIZE      = VIEW_TILES * TILE;
 static const float  VIEW_OFFSET    = TILE * 0.5f;
 
 static struct {
-	float start_x;
-	float start_y;
-	float last_x;
-	float last_y;
-
 	float map_x;
 	float map_y;
 	int   tile_x;
@@ -32,8 +27,6 @@ static struct {
 
 	int selector_x;
 	int selector_y;
-
-	bool scrolling;
 } s_ctx;
 
 typedef struct rect_t {
@@ -48,30 +41,12 @@ static inline bool is_in_rect(float x, float y, const rect_t* rect) {
 		&& y >= rect->y && y < rect->y + rect->h;
 }
 
-static void start_scroll() {
-	assert(!s_ctx.scrolling);
-
-	float x, y;
-	input_position(&x, &y);
-
-	s_ctx.start_x   = x;
-	s_ctx.start_y   = y;
-	s_ctx.last_x    = x;
-	s_ctx.last_y    = y;
-	s_ctx.scrolling = true;
-}
-
-static void stop_scroll() {
-	assert(s_ctx.scrolling);
-	s_ctx.scrolling = false;
-}
-
 static void update_scroll() {
 	float x, y;
 	input_position(&x, &y);
 
-	const float dx = x - s_ctx.last_x;
-	const float dy = y - s_ctx.last_y;
+	float dx, dy;
+	input_position_delta(&dx, &dy);
 
 	float new_x  = s_ctx.map_x + dx;
 	float new_y  = s_ctx.map_y + dy;
@@ -114,9 +89,6 @@ static void update_scroll() {
 	s_ctx.map_y  = new_y;
 	s_ctx.tile_x = new_tx;
 	s_ctx.tile_y = new_ty;
-
-	s_ctx.last_x = x;
-	s_ctx.last_y = y;
 }
 
 static void render_scroll() {
@@ -129,15 +101,15 @@ static void render_scroll() {
 
 	char buf[64];
 
-	const float ox = 32.0f;
-	const float oy = 32.0f;
+	const float ox = s_ctx.map_x;
+	const float oy = s_ctx.map_y;
 							  
-	for (size_t i = 0; i < VIEW_TILES; ++i) {
-		for (size_t j = 0; j < VIEW_TILES; ++j) {
+	for (size_t i = 0; i < VIEW_TILES_PAD; ++i) {
+		for (size_t j = 0; j < VIEW_TILES_PAD; ++j) {
 			const size_t tx = s_ctx.tile_x + i;
 			const size_t ty = s_ctx.tile_y + j;
-			const float  x  = ox + s_ctx.map_x + TILE * i;
-			const float  y  = oy + s_ctx.map_y + TILE * j;
+			const float  x  = VIEW_OFFSET + ox + TILE * i;
+			const float  y  = VIEW_OFFSET + oy + TILE * j;
 
 			snprintf(buf, 64, "%zu,%zu", tx, ty);
 			render_sprite(assets_sprites()->common.sign_green_dark, x, y);
@@ -166,40 +138,9 @@ void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 		s_ctx.selector_y = session_current()->player.y;
 	}
 
-	static int frame = 0;
-	if (input_button_pressed(INPUT_BUTTON_LEFT)) {
-		log_info("[travel map] button pressed - %d", frame);
-	}
-	if (input_button_released(INPUT_BUTTON_LEFT)) {
-		log_info("[travel map] button released - %d", frame);
-	}
-	if (input_button_clicked(INPUT_BUTTON_LEFT)) {
-		log_info("[travel map] button clicked - %d", frame);
-	}
 	if (input_dragging(INPUT_BUTTON_LEFT)) {
-		float dx, dy;
-		input_drag_delta(INPUT_BUTTON_LEFT, &dx, &dy);
-		log_info("[travel map] dragging for %.2f, %.2f", dx, dy);
+		update_scroll();
 	}
-	++frame;
-
-	/* if (!was_clicked) { */
-	/* 	if (!s_ctx.scrolling && input_button_pressed(INPUT_BUTTON_LEFT)) { */
-	/* 		log_info("[travel map] scroll started"); */
-	/* 		start_scroll(); */
-	/* 	} else if (s_ctx.scrolling) { */
-	/* 		if (input_button_released(INPUT_BUTTON_LEFT)) { */
-	/* 			log_info("[travel map] scroll stopped"); */
-	/* 			stop_scroll(); */
-	/* 		} else { */
-	/* 			update_scroll(); */
-	/* 		} */
-	/* 	} else if (input_button_released(INPUT_BUTTON_LEFT)) { */
-	/* 		if (session_current()) { */
-	/* 			session_end(); */
-	/* 		} */
-	/* 	} */
-	/* } */
 
 	if (!session_current()) {
 		game_state_switch(GAME_STATE_LOGIN);
