@@ -121,17 +121,15 @@ void states_travel_map_init() {
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 	if (!session_current()) return;
 
+	// TODO: Setup this in _init.
 	if (s_ctx.selector_x == -1 && s_ctx.selector_y == -1) {
+		const uint32_t OFFSET_TO_CENTER = VIEW_TILES / 2;
 		const uint32_t px = session_current()->player.x;
 		const uint32_t py = session_current()->player.y;
-
-		const uint32_t OFFSET_TO_CENTER = VIEW_TILES / 2;
-
-		s_ctx.tile_x = px - OFFSET_TO_CENTER;
-		s_ctx.tile_y = py - OFFSET_TO_CENTER;
-
-		s_ctx.selector_x = px;
-		s_ctx.selector_y = py;
+		s_ctx.tile_x      = px - OFFSET_TO_CENTER;
+		s_ctx.tile_y      = py - OFFSET_TO_CENTER;
+		s_ctx.selector_x  = px;
+		s_ctx.selector_y  = py;
 	}
 
 	if (input_dragging(INPUT_BUTTON_LEFT)) {
@@ -253,7 +251,7 @@ static void resource_indicator_value_render(const resource_t* res, const indicat
 	render_value_max(0, res->max, tx, ty, params);
 }
 
-static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_y) {
+static void render_coordinates(float x, float y, uint8_t tiles_x, uint8_t tiles_y) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_beta, x,         y);
 	render_sprite(assets_sprites()->travel_map.dice_5p_brown,           x + 32.0f, y);
 
@@ -290,7 +288,7 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 	x = render_value_with_zeros(dy, x, y, zeros_color, emphasis_color, &text_params);
 }
 
-static void resources_render() {
+static void render_resources() {
 	const indicator_rendering_t mind_rendering = {
 		.zeros_color  = render_color(0x0D, 0x27, 0x34),
 		.value_color = render_color(0x00, 0xC8, 0xFF),
@@ -378,8 +376,6 @@ static void resources_render() {
 }
 
 static void render_movement() {
-	/* const uint8_t x = 3, y = 3; */
-	/* render_sprite(assets_sprites()->avatars.avatar_man2, 32.0f + 64.0f * x, 32.0f + 64.0f * y); */
 }
 
 static void render_selector() {
@@ -398,19 +394,36 @@ static void render_selector() {
 	render_sprite(assets_sprites()->common.selector_location, x, y);
 }
 
-void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
-	if (!session_current()) return;
+static void render_compass() {
+	// TODO: Should be shown only if player is not visible in the current view.
+	/* render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f); */
+}
 
-	// TODO: Render map view.
-	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);
-	render_movement();
+static void render_player() {
+	const uint32_t px = session_current()->player.x;
+	const uint32_t py = session_current()->player.y;
 
-	render_scroll();
-	render_selector();
+	const uint32_t tx = px - s_ctx.tile_x;
+	const uint32_t ty = py - s_ctx.tile_y;
 
-	// Map chrome.
+	if (tx >= s_ctx.tile_x && tx < s_ctx.tile_x + VIEW_TILES &&
+		ty >= s_ctx.tile_y && ty < s_ctx.tile_y + VIEW_TILES) {
+		return;
+	}
+
+	const float x = VIEW_OFFSET + s_ctx.map_x + tx * TILE;
+	const float y = VIEW_OFFSET + s_ctx.map_y + ty * TILE;
+	render_sprite(assets_sprites()->avatars.avatar_man2, x, y);
+}
+
+static void render_chrome() {
 	render_sprite(assets_sprites()->travel_map.black_map_frame,    0.0f,  0.0f);
 	render_sprite(assets_sprites()->travel_map.atlas_frame,       32.0f, 32.0f);
+
+	// Planets influence
+	render_sprite(assets_sprites()->travel_map.greek_letter_black_alpha,           0.0f, 0.0f);
+	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
+
 	render_sprite(assets_sprites()->common.header,                32.0f,  0.0f);
 	static const render_text_t title_params = {
 		.font    = "regular",
@@ -419,13 +432,20 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 		.shadow  = true
 	};
 	render_text("Hello, sailor!", 512.0f * 0.5f, 16.0f, &title_params);
+}
 
-	// Planets influence
-	render_sprite(assets_sprites()->travel_map.greek_letter_black_alpha,           0.0f, 0.0f);
-	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
+void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
+	if (!session_current()) return;
 
-	// TODO: Should be shown only if player is not visible in the current view.
-	/* render_sprite(assets_sprites()->travel_map.button_compass_n, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f); */
-	resources_render();
-	coordinates_render(5 * 32.0f, 512.0f - 32.0f, s_ctx.tile_x, s_ctx.tile_y);
+	// TODO: Render map view.
+	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);
+
+	render_movement();
+	render_scroll();
+	render_player();
+	render_selector();
+	render_chrome();
+	render_compass();
+	render_resources();
+	render_coordinates(5 * 32.0f, 512.0f - 32.0f, s_ctx.tile_x, s_ctx.tile_y);
 }
