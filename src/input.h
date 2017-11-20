@@ -23,3 +23,4 @@ bool input_dragging(input_button_t b);
 void input_drag_delta(input_button_t b, float* x, float* y);
 
 void input_position(float* x, float* y);
+void input_position_delta(float* dx, float* dy);

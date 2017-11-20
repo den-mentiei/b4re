@@ -99,3 +99,11 @@ void input_drag_delta(input_button_t b, float* x, float* y) {
 void input_position(float* x, float* y) {
 	entry_mouse_position(x, y);
 }
+
+void input_position_delta(float* dx, float* dy) {
+	assert(dx);
+	assert(dy);
+
+	*dx = s_ctx.dx;
+	*dy = s_ctx.dy;
+}
