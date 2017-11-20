@@ -16,6 +16,7 @@ static struct {
 
 	session_t current;
 	session_t synced;
+	bool      is_logged_in;
 	bool      is_active;
 
 	char username[128];
@@ -29,6 +30,13 @@ static void login(const char* username, const char* password);
 static void logout();
 static void fetch_state();
 /// API END
+
+static bool safe_is_logged_in() {
+	mtx_lock(&s_ctx.lock);
+	bool is_logged_in = s_ctx.is_logged_in;
+	mtx_unlock(&s_ctx.lock);
+	return is_logged_in;
+}
 
 static bool safe_is_active() {
 	mtx_lock(&s_ctx.lock);
@@ -50,7 +58,7 @@ void session_update() {
 	mtx_unlock(&s_ctx.lock);
 
 	static bool was_state_fetched = false;
-	if (safe_is_active()) {
+	if (safe_is_logged_in()) {
 		if (!was_state_fetched) {
 			was_state_fetched = true;
 			fetch_state();
@@ -96,7 +104,7 @@ static char* STATE_TAG = "state";
 static void http_handler(const uint8_t* data, size_t size, void* payload) {
 	if (payload == LOGIN_TAG) {
 		mtx_lock(&s_ctx.lock);
-		s_ctx.is_active = true;
+			s_ctx.is_logged_in = true;
 		mtx_unlock(&s_ctx.lock);
 	} else if (payload == STATE_TAG) {
 		api_state_t state;
@@ -104,9 +112,13 @@ static void http_handler(const uint8_t* data, size_t size, void* payload) {
 		assert(parsed);
 
 		mtx_lock(&s_ctx.lock);
-		// TODO: Copy field by field or re-use parsed state.
-		memcpy(&s_ctx.synced.player.mind,     &state.player.mind, sizeof(resource_t));
-		memcpy(&s_ctx.synced.player.matter, &state.player.matter, sizeof(resource_t));
+			// TODO: Copy field by field or re-use parsed state.
+			memcpy(&s_ctx.synced.player.mind,   &state.player.mind,   sizeof(resource_t));
+			memcpy(&s_ctx.synced.player.matter, &state.player.matter, sizeof(resource_t));
+			s_ctx.synced.player.x   = state.player.x;
+			s_ctx.synced.player.y   = state.player.y;
+			s_ctx.synced.player.exp = state.player.exp;
+			s_ctx.is_active         = true;
 		mtx_unlock(&s_ctx.lock);
 	} else {
 		log_info((const char*)data);

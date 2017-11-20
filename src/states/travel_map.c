@@ -12,6 +12,13 @@
 #include "render_text.h"
 #include "generated/assets.h"
 
+static const size_t VIEW_TILES     = 7;
+static const size_t VIEW_TILES_PAD = VIEW_TILES + 1;
+static const size_t PLANE_TILES    = 256;
+static const float  TILE           = 64.0f;
+static const float  VIEW_SIZE      = VIEW_TILES * TILE;
+static const float  VIEW_OFFSET    = TILE * 0.5f;
+
 static struct {
 	float start_x;
 	float start_y;
@@ -22,6 +29,9 @@ static struct {
 	float map_y;
 	int   tile_x;
 	int   tile_y;
+
+	int selector_x;
+	int selector_y;
 
 	bool scrolling;
 } s_ctx;
@@ -56,12 +66,6 @@ static void stop_scroll() {
 	s_ctx.scrolling = false;
 }
 
-// TODO: Make it equal to 7 and factor out +1 to scroll padding or whatever.
-static const size_t VIEW_TILES   = 8;
-static const size_t PLANE_TILES  = 256;
-static const float  TILE         = 64.0f;
-static const float  VIEW_SIZE    = VIEW_TILES * TILE;
-
 static void update_scroll() {
 	float x, y;
 	input_position(&x, &y);
@@ -93,17 +97,17 @@ static void update_scroll() {
 	if (new_tx < 0) {
 		new_x  = 0;
 		new_tx = 0;
-	} else if (new_tx + VIEW_TILES > PLANE_TILES) {
+	} else if (new_tx + VIEW_TILES_PAD > PLANE_TILES) {
 		new_x  = -TILE;
-		new_tx = PLANE_TILES - VIEW_TILES;
+		new_tx = PLANE_TILES - VIEW_TILES_PAD;
 	}
 
 	if (new_ty < 0) {
 		new_y  = 0;
 		new_ty = 0;
-	} else if (new_ty + VIEW_TILES > PLANE_TILES) {
+	} else if (new_ty + VIEW_TILES_PAD > PLANE_TILES) {
 		new_y  = -TILE;
-		new_ty = PLANE_TILES - VIEW_TILES;
+		new_ty = PLANE_TILES - VIEW_TILES_PAD;
 	}
 
 	s_ctx.map_x  = new_x;
@@ -149,7 +153,19 @@ static void render_scroll() {
 	render_sprite(assets_sprites()->travel_map.mapnet, gx + 256.0f, gy + 256.0f);
 }
 
+void states_travel_map_init() {
+	s_ctx.selector_x = -1;
+	s_ctx.selector_y = -1;
+}
+
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
+	if (!session_current()) return;
+
+	if (s_ctx.selector_x == -1 && s_ctx.selector_y == -1) {
+		s_ctx.selector_x = session_current()->player.x;
+		s_ctx.selector_y = session_current()->player.y;
+	}
+
 	static int frame = 0;
 	if (input_button_pressed(INPUT_BUTTON_LEFT)) {
 		log_info("[travel map] button pressed - %d", frame);
@@ -262,8 +278,6 @@ static float render_value_with_zeros(uint8_t value, float x, float y, color_t ze
 static void render_value_max(uint8_t value, uint8_t max, float x, float y, const indicator_rendering_t* params) {
 	assert(params);
 
-	char buf[8] = {0};
-
 	render_text_t text_params = params->text_params;
 	float w;
 	text_params.bounds_w = &w;
@@ -306,8 +320,6 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_beta, x,         y);
 	render_sprite(assets_sprites()->travel_map.dice_5p_brown,           x + 32.0f, y);
 
-	char buf[8] = {0};
-
 	float w;
 	render_text_t text_params = {
 		.font       = "regular",
@@ -315,7 +327,7 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 		.bounds_w   = &w,
 		.align      = RENDER_TEXT_ALIGN_LEFT | RENDER_TEXT_ALIGN_MIDDLE,
 	};
-	const color_t zeros_color    = render_color(48, 48, 54);
+	const color_t zeros_color    = render_color( 48, 48, 54);
 	const color_t emphasis_color = render_color(143, 54, 33); 
 	
 	x += 32.0f * 2 + 8.0f;
@@ -433,6 +445,18 @@ static void render_movement() {
 	/* render_sprite(assets_sprites()->avatars.avatar_man2, 32.0f + 64.0f * x, 32.0f + 64.0f * y); */
 }
 
+static void render_selector() {
+	const int tile_x = s_ctx.selector_x - s_ctx.tile_x;
+	const int tile_y = s_ctx.selector_y - s_ctx.tile_y;
+	if (tile_x >= s_ctx.tile_x && tile_x < s_ctx.tile_x + VIEW_TILES &&
+		tile_y >= s_ctx.tile_y && tile_y < s_ctx.tile_y + VIEW_TILES) {
+		return;
+	}
+	const float x = s_ctx.map_x + tile_x * TILE;
+	const float y = s_ctx.map_y + tile_y * TILE;
+	render_sprite(assets_sprites()->common.selector_location, x, y);
+}
+
 void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	if (!session_current()) return;
 
@@ -441,6 +465,7 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_movement();
 
 	render_scroll();
+	render_selector();
 
 	// Map chrome.
 	render_sprite(assets_sprites()->travel_map.black_map_frame,    0.0f,  0.0f);
@@ -455,7 +480,7 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_text("Hello, sailor!", 512.0f * 0.5f, 16.0f, &title_params);
 
 	// Planets influence
-	render_sprite(assets_sprites()->travel_map.greek_letter_black_alpha, 0.0f,           0.0f);
+	render_sprite(assets_sprites()->travel_map.greek_letter_black_alpha,           0.0f, 0.0f);
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_omega, 512.0f - 32.0f, 0.0f);
 
 	// TODO: Should be shown only if player is not visible in the current view.
