@@ -6,6 +6,7 @@
 #include "game.h"
 #include "log.h"
 #include "session.h"
+#include "imgui.h"
 #include "input.h"
 #include "render.h"
 #include "render.inl"
@@ -17,7 +18,8 @@ static const size_t VIEW_TILES_PAD = VIEW_TILES + 1;
 static const size_t PLANE_TILES    = 256;
 static const float  TILE           = 64.0f;
 static const float  VIEW_SIZE      = VIEW_TILES * TILE;
-static const float  VIEW_OFFSET    = TILE * 0.5f;
+static const float  VIEW_OFFSET    = 0.5f * TILE;
+static const float  SCREEN_SIZE    = 8    * TILE;
 
 static struct {
 	float map_x;
@@ -111,6 +113,18 @@ static void render_map_view() {
 	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy + 256.0f);
 }
 
+static void center_on_player() {
+	const uint32_t OFFSET_TO_CENTER = VIEW_TILES / 2;
+	const uint32_t px = session_current()->player.x;
+	const uint32_t py = session_current()->player.y;
+	s_ctx.map_x       = 0.0f;
+	s_ctx.map_y       = 0.0f;
+	s_ctx.tile_x      = px - OFFSET_TO_CENTER;
+	s_ctx.tile_y      = py - OFFSET_TO_CENTER;
+	s_ctx.selector_x  = px;
+	s_ctx.selector_y  = py;
+}
+
 void states_travel_map_init() {
 	s_ctx.selector_x = -1;
 	s_ctx.selector_y = -1;
@@ -121,13 +135,7 @@ void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 
 	// TODO: Setup this in _init.
 	if (s_ctx.selector_x == -1 && s_ctx.selector_y == -1) {
-		const uint32_t OFFSET_TO_CENTER = VIEW_TILES / 2;
-		const uint32_t px = session_current()->player.x;
-		const uint32_t py = session_current()->player.y;
-		s_ctx.tile_x      = px - OFFSET_TO_CENTER;
-		s_ctx.tile_y      = py - OFFSET_TO_CENTER;
-		s_ctx.selector_x  = px;
-		s_ctx.selector_y  = py;
+		center_on_player();
 	}
 
 	if (input_dragging(INPUT_BUTTON_LEFT)) {
@@ -459,7 +467,13 @@ static void render_compass() {
 		assets_sprites()->travel_map.button_compass_se,
 	};
 	const struct sprite_t* s = sprites[lookup_compass_sprite(px, py, cx, cy)];
-	render_sprite(s, 512.0f * 0.5f - 32.0f, 512.0f - 64.0f - 32.0f);
+	const float x = (SCREEN_SIZE - TILE) * 0.5f;
+	const float y =  SCREEN_SIZE - TILE - TILE * 0.5f;
+	render_sprite(s, x, y);
+
+	if (imgui_button_invisible(1, x, y, TILE, TILE)) {
+		center_on_player();
+	}
 }
 
 static void render_player() {
