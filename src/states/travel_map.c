@@ -89,15 +89,15 @@ static void render_scroll() {
 
 	char buf[64];
 
-	const float ox = s_ctx.map_x;
-	const float oy = s_ctx.map_y;
+	const float ox = VIEW_OFFSET + s_ctx.map_x;
+	const float oy = VIEW_OFFSET + s_ctx.map_y;
 							  
 	for (size_t i = 0; i < VIEW_TILES_PAD; ++i) {
 		for (size_t j = 0; j < VIEW_TILES_PAD; ++j) {
 			const size_t tx = s_ctx.tile_x + i;
 			const size_t ty = s_ctx.tile_y + j;
-			const float  x  = VIEW_OFFSET + ox + TILE * i;
-			const float  y  = VIEW_OFFSET + oy + TILE * j;
+			const float  x  = ox + TILE * i;
+			const float  y  = oy + TILE * j;
 
 			snprintf(buf, 64, "%zu,%zu", tx, ty);
 			render_sprite(assets_sprites()->common.sign_green_dark, x, y);
@@ -105,12 +105,10 @@ static void render_scroll() {
 		}
 	}
 
-	const float gx = ox + s_ctx.map_x;
-	const float gy = oy + s_ctx.map_y;
-	render_sprite(assets_sprites()->travel_map.mapnet, gx,          gy);
-	render_sprite(assets_sprites()->travel_map.mapnet, gx,          gy + 256.0f);
-	render_sprite(assets_sprites()->travel_map.mapnet, gx + 256.0f, gy);
-	render_sprite(assets_sprites()->travel_map.mapnet, gx + 256.0f, gy + 256.0f);
+	render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy);
+	render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy + 256.0f);
+	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy);
+	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy + 256.0f);
 }
 
 void states_travel_map_init() {
