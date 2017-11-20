@@ -131,7 +131,7 @@ void states_travel_map_init() {
 }
 
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
-	if (!session_current()) return;
+	assert(session_current());
 
 	// TODO: Setup this in _init.
 	if (s_ctx.selector_x == -1 && s_ctx.selector_y == -1) {
@@ -511,7 +511,7 @@ static void render_chrome() {
 }
 
 void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
-	if (!session_current()) return;
+	assert(session_current());
 
 	// TODO: Render map view.
 	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);

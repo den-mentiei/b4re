@@ -3,15 +3,11 @@
 #include "imgui.h"
 #include "log.h"
 #include "render.h"
-#include "generated/assets.h"
 #include "game.h"
 #include "session.h"
+#include "generated/assets.h"
 
-void states_login_update(uint16_t width, uint16_t height, float dt) {
-	if (session_current()) {
-		game_state_switch(GAME_STATE_MAP);
-	}
-}
+void states_login_update(uint16_t width, uint16_t height, float dt) {}
 
 void states_login_render(uint16_t width, uint16_t height, float dt) {
 	struct {
@@ -33,6 +29,7 @@ void states_login_render(uint16_t width, uint16_t height, float dt) {
 	for (size_t i = 0; i < NUM_USERS; ++i) {
 		if (imgui_button(i + 1, users[i].avatar, x, y, AVATAR_SIZE, AVATAR_SIZE)) {
 			session_start(users[i].name, users[i].pass);
+			game_state_switch(GAME_STATE_LOADING);
 		}
 
 		x += AVATAR_SIZE + AVATAR_MARGIN;

@@ -10,6 +10,7 @@ void game_shutdown();
 
 typedef enum {
 	GAME_STATE_LOGIN = 0,
+	GAME_STATE_LOADING,
 	GAME_STATE_MAP
 } game_state_t;
 void game_state_switch(game_state_t s);
