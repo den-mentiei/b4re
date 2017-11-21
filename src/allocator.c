@@ -3,6 +3,10 @@
 #include <stdlib.h> // realloc
 
 static void* std_realloc(void* ctx, void* p, size_t new_size) {
+	if (new_size == 0) {
+		free(p);
+		return NULL;
+	}
 	return realloc(p, new_size);
 }
 
