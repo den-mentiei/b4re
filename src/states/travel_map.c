@@ -400,7 +400,7 @@ static void render_selector() {
 	const int32_t tile_y = s_ctx.selector_y - s_ctx.tile_y;
 
 	// TODO: @refactor Move it out into a common check.
-	if (!(tile_x >= 0 && tile_x < VIEW_TILES && tile_y >= 0 && tile_y < VIEW_TILES)) {
+	if (!(tile_x >= 0 && tile_x < VIEW_TILES_PAD && tile_y >= 0 && tile_y < VIEW_TILES_PAD)) {
 		return;
 	}
 
