@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <string.h> // memcpy
+#include <math.h>   // floor
 
 #include <stb_image.h>
 #include <bgfx/bgfx.h>
@@ -15,7 +16,7 @@
 
 typedef struct sprite_t {
 	render_texture_t tex;
-	float  w,  h;
+	float w,  h;
 	float u0, v0;
 	float u1, v1;
 } sprite_t;
@@ -28,7 +29,7 @@ static struct {
 	const bgfx_memory_t* pending_memory;
 
 	struct {
-		size_t                count;
+		size_t count;
 		struct {
 			bgfx_texture_handle_t handle;
 			float w, h;
@@ -228,6 +229,69 @@ void render_transient(const render_vertex_t* vertices, size_t num_vertices, cons
 	bgfx_set_transient_vertex_buffer(0, &tvb, 0, num_vertices);
 	bgfx_set_transient_index_buffer(&tib, 0, num_indices);
 	bgfx_set_texture(0, s_ctx.u_texture, th, UINT32_MAX);
+	bgfx_set_state(DEFAULT_STATE_2D, 0);
+	bgfx_submit(0, s_ctx.program, 0, false);
+}
+
+static render_vertex_t s_tile_vertices[] = {
+	{ 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0xFFFFFFFF },
+	{ 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0xFFFFFFFF },
+	{ 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0xFFFFFFFF },
+	{ 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0xFFFFFFFF },
+};
+
+void render_tile(const struct sprite_t* tilemap, float x, float y, const render_tile_t* params) {
+	assert(tilemap);
+	assert(params);
+	assert(params->tile_w > 0);
+	assert(params->tile_h > 0);
+
+	const float  w = params->tile_w;
+	const float  h = params->tile_h;
+	const size_t NUM_TILES_X = floor(tilemap->w / params->tile_w);
+	const size_t NUM_TILES_Y = floor(tilemap->h / params->tile_h);
+
+	// TODO: Hard-coded for non-atlassed sprites, assumes 0..1 uvs.
+	const float du = 1.0f / NUM_TILES_X;
+	const float dv = 1.0f / NUM_TILES_Y;
+	const float u0 = params->tile_x * du;
+	const float v0 = params->tile_y * dv;
+	const float u1 = u0 + du;
+	const float v1 = v0 + dv;
+
+	assert(params->tile_x < NUM_TILES_X);
+	assert(params->tile_y < NUM_TILES_Y);
+
+#define VERT(i, _x, _y, _u, _v)            \
+	s_tile_vertices[i].x = _x;             \
+	s_tile_vertices[i].y = _y;             \
+	s_tile_vertices[i].u = _u;             \
+	s_tile_vertices[i].v = _v;             \
+	s_tile_vertices[i].color = 0xFFFFFFFF;
+
+	VERT(0, x,     y,     u0, v0);
+	VERT(1, x + w, y,     u1, v0);
+	VERT(2, x + w, y + h, u1, v1);
+	VERT(3, x,     y + h, u0, v1);
+
+#undef VERT
+
+	const size_t NUM_INDICES =  sizeof(s_indices) / sizeof(s_indices[0]);
+	const size_t NUM_VERTICES = sizeof(s_tile_vertices) / sizeof(s_tile_vertices[0]);
+
+	bgfx_transient_vertex_buffer_t tvb;
+	bgfx_transient_index_buffer_t  tib;
+
+	bgfx_alloc_transient_buffers(&tvb, &s_ctx.vdecl, NUM_VERTICES, &tib, NUM_INDICES);
+
+	memcpy(tvb.data, s_tile_vertices, tvb.size);
+	memcpy(tib.data, s_indices, tib.size);
+
+	bgfx_texture_handle_t tex = s_ctx.textures.data[tilemap->tex].handle;
+
+	bgfx_set_transient_vertex_buffer(0, &tvb, 0, NUM_VERTICES);
+	bgfx_set_transient_index_buffer(&tib, 0, NUM_INDICES);
+	bgfx_set_texture(0, s_ctx.u_texture, tex, UINT32_MAX);
 	bgfx_set_state(DEFAULT_STATE_2D, 0);
 	bgfx_submit(0, s_ctx.program, 0, false);
 }
