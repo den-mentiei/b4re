@@ -11,6 +11,7 @@ static struct {
 	bool  down;
 
 	// Hot item is the one that's below the mouse cursor.
+	int64_t was_hot;
 	int64_t hot;
 	// Active item is the one you're currently interacting with.
 	int64_t active;
@@ -28,12 +29,13 @@ static bool is_mouse_hit(float x, float y, float w, float h) {
 }
 
 void imgui_init() {
-	COLOR_NORMAL = render_color(255, 255, 255);
-	COLOR_HOT    = render_color(  0, 255,   5);
-	COLOR_ACTIVE = render_color(255,   0,   0);
+	COLOR_NORMAL = render_color(0xFF, 0xFF, 0xFF);
+	COLOR_HOT    = render_color(0x00, 0xFF, 0x00);
+	COLOR_ACTIVE = render_color(0xFF, 0x00, 0x00);
 }
 
 void imgui_update() {
+	s_ctx.was_hot = s_ctx.hot;
 	s_ctx.hot = 0;
 
 	if (input_button_pressed(INPUT_BUTTON_LEFT)) {
@@ -49,7 +51,8 @@ void imgui_post_update() {
 	if (!s_ctx.down) {
 		s_ctx.active = 0;
 	} else if (s_ctx.active == 0) {
-		s_ctx.active = -1;
+		s_ctx.was_hot = 0;
+		s_ctx.active  = -1;
 	}
 }
 
@@ -58,9 +61,11 @@ bool imgui_button_invisible(int64_t id, float x, float y, float w, float h) {
 	assert(id > 0);
 
 	if (is_mouse_hit(x, y, w, h)) {
-		s_ctx.hot = id;
-		if (s_ctx.active == 0 && s_ctx.down) {
-			s_ctx.active = id;
+		if (s_ctx.was_hot == 0 || s_ctx.was_hot == id) {
+			s_ctx.hot = id;
+			if (s_ctx.active == 0 && s_ctx.down) {
+				s_ctx.active  = id;
+			}
 		}
 	}
 
