@@ -49,9 +49,12 @@ project "entry"
 	links {
 		-- TODO: Use release libraries for release configuration.
 		"curlDebug",
-		"bgfxDebug",
-		"bimgDebug",
-		"bxDebug",
+		"bgfxRelease",
+		"bimgRelease",
+		"bxRelease",
+		-- "bgfxDebug",
+		-- "bimgDebug",
+		-- "bxDebug",
 	}
 
 	filter "configurations:debug"
