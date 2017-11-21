@@ -93,7 +93,9 @@ static void render_map_view() {
 
 	const float ox = VIEW_OFFSET + s_ctx.map_x;
 	const float oy = VIEW_OFFSET + s_ctx.map_y;
-							  
+
+	bool can_select = !input_dragging(INPUT_BUTTON_LEFT);
+
 	for (size_t i = 0; i < VIEW_TILES_PAD; ++i) {
 		for (size_t j = 0; j < VIEW_TILES_PAD; ++j) {
 			const size_t tx = s_ctx.tile_x + i;
@@ -104,6 +106,11 @@ static void render_map_view() {
 			snprintf(buf, 64, "%zu,%zu", tx, ty);
 			render_sprite(assets_sprites()->common.sign_green_dark, x, y);
 			render_text(buf, x + TILE * 0.5f, y + TILE * 0.5f, &DEBUG_TEXT);
+
+			if (can_select && imgui_button_invisible(j * VIEW_TILES_PAD + i + 1, x, y, TILE, TILE)) {
+				s_ctx.selector_x = tx;
+				s_ctx.selector_y = ty;
+			}
 		}
 	}
 
@@ -133,9 +140,9 @@ void states_travel_map_init() {
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 	assert(session_current());
 	
-	static bool was_map_requsted;
-	if (!was_map_requsted) {
-		was_map_requsted = true;
+	static bool was_map_requested;
+	if (!was_map_requested) {
+		was_map_requested = true;
 		session_foo();
 	}
 

@@ -64,7 +64,7 @@ bool imgui_button_invisible(int64_t id, float x, float y, float w, float h) {
 		}
 	}
 
-	return !s_ctx.down && s_ctx.hot == id && s_ctx.active == id;
+	return s_ctx.hot == id && s_ctx.active == id && input_button_clicked(INPUT_BUTTON_LEFT);
 }
 
 bool imgui_button(int64_t id, const struct sprite_t* s, float x, float y, int w, int h) {
