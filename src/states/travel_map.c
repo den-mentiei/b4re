@@ -27,8 +27,9 @@ static struct {
 	int   tile_x;
 	int   tile_y;
 
-	int selector_x;
-	int selector_y;
+	int  selector_x;
+	int  selector_y;
+	bool has_selector;
 } s_ctx;
 
 static void update_scroll() {
@@ -132,11 +133,6 @@ static void center_on_player() {
 	s_ctx.selector_y  = py;
 }
 
-void states_travel_map_init() {
-	s_ctx.selector_x = -1;
-	s_ctx.selector_y = -1;
-}
-
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 	assert(session_current());
 	
@@ -146,9 +142,9 @@ void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 		session_foo();
 	}
 
-	// TODO: Setup this in _init.
-	if (s_ctx.selector_x == -1 && s_ctx.selector_y == -1) {
+	if (!s_ctx.has_selector) {
 		center_on_player();
+		s_ctx.has_selector = true;
 	}
 
 	if (input_dragging(INPUT_BUTTON_LEFT)) {
@@ -534,5 +530,5 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_chrome();
 	render_compass();
 	render_resources();
-	render_coordinates(5 * 32.0f, 512.0f - 32.0f, s_ctx.tile_x, s_ctx.tile_y);
+	render_coordinates(5 * 32.0f, 512.0f - 32.0f, s_ctx.selector_x, s_ctx.selector_y);
 }
