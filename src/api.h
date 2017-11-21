@@ -3,11 +3,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// TODO: @refactor Do *not* include!
+#include "world.h"
+
 struct allocator_t;
 
 #define MAX_API_STRING_LENGTH 64
 
-typedef struct api_state_resource_t {
+typedef struct {
 	// Server time in seconds.
 	uint64_t last_update;
 	// Booster time in seconds, 3600s per segment.
@@ -24,7 +27,7 @@ typedef struct api_state_resource_t {
 	uint8_t segment_time;
 } api_state_resource_t;
 
-typedef struct api_state_player_t {
+typedef struct {
 	char username[MAX_API_STRING_LENGTH];
 	char avatar[MAX_API_STRING_LENGTH];
 	char plane_id[MAX_API_STRING_LENGTH];
@@ -40,10 +43,21 @@ typedef struct api_state_player_t {
 	// TODO: Movement, sigh. Skills. Skill keys. Under construction.
 } api_state_player_t;
 
-typedef struct api_state_t {
+typedef struct {
 	// Server time in seconds.
 	uint64_t timestamp;
 	api_state_player_t player;
 } api_state_t;
 
+#define API_MAP_PART_SIZE 12
+typedef struct {
+	// TODO: @optimize Union?
+	struct {
+		uint8_t terrain;
+		bool    is_hidden;
+	} terrain[12][12];
+	uint32_t x, y;
+} api_map_t;
+
 bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* state);
+bool api_parse_map(struct allocator_t* alloc, const char* data, api_map_t* map);

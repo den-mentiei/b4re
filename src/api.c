@@ -144,6 +144,26 @@ static const jsmntok_t* json_get_value(const json_t* json, const jsmntok_t* root
 	return NULL;
 }
 
+static const jsmntok_t* get_array_value(const json_t* json, const jsmntok_t* root, size_t i) {
+	assert(json);
+	assert(root);
+
+	if (json->num_tokens == 0)     return NULL;
+	if (root->type != JSMN_ARRAY)  return NULL;
+
+	assert(i < root->size);
+
+	const size_t left = json->num_tokens - (root - json->tokens);
+
+	size_t k = 0;
+	for (size_t v = 0; v < i; ++v) {
+		const jsmntok_t* kt = root + 1 + k;
+		k += skip(json->data, kt, left - k);
+	}
+
+	return root + 1 + k;
+}
+
 static inline bool is_number(const char* data, const jsmntok_t* t) {
 	assert(t);
 	assert(data);
@@ -163,18 +183,46 @@ static inline bool try_parse_uint64(const char* data, const jsmntok_t* t, uint64
 	return true;
 }
 
+static inline bool try_parse_bool(const char* data, const jsmntok_t* t, bool* out) {
+	assert(data);
+	assert(t);
+	assert(out);
+
+	const char c = *(data + t->start);
+	if (t->type != JSMN_PRIMITIVE) return false;
+
+	*out = c == 't';
+	return true;
+}
+
 static bool try_get_object_number(const json_t* json, const jsmntok_t* object, const char* key, uint64_t* out) {
 	const jsmntok_t* value = json_get_value(json, object, key);
+	if (!value) return false;
 	return try_parse_uint64(json->data, value, out);
+}
+
+static bool try_get_object_bool(const json_t* json, const jsmntok_t* object, const char* key, bool* out) {
+	const jsmntok_t* value = json_get_value(json, object, key);
+	if (!value) return false;
+	return try_parse_bool(json->data, value, out);
 }
 
 static uint64_t get_object_number(const json_t* json, const jsmntok_t* object, const char* key) {
 	uint64_t number;
 	if (!try_get_object_number(json, object, key, &number)) {
-		log_error("[api] state: player: %s field is missing or not a number.", key);
+		log_error("[api] state: object '%s' field is missing or not a number.", key);
 		return 0;
 	}
 	return number;
+}
+
+static bool get_object_bool(const json_t* json, const jsmntok_t* object, const char* key) {
+	bool boolean;
+	if (!try_get_object_bool(json, object, key, &boolean)) {
+		log_error("[api] state: object '%s' field is missing or not a boolean.", key);
+		return false;
+	}
+	return boolean;
 }
 
 static void get_object_string(const json_t* json, const jsmntok_t* object, const char* key, char* buf, size_t n) {
@@ -238,6 +286,77 @@ bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* s
 	const jsmntok_t* player = json_get_value(json, json->tokens, "player");
 	assert(player);
 	parse_player(json, player, &state->player);
+
+	json_free(json);
+	return true;
+}
+
+static const struct {
+	const char* key;
+	uint8_t terrain;
+} s_terrain_lookup[] = {
+	{ "rock_water",   TERRAIN_ROCK_WATER },
+	{ "rock_solid",   TERRAIN_ROCK_SOLID },
+	{ "rock",         TERRAIN_ROCK },
+	{ "rock_sand",    TERRAIN_ROCK_SAND },
+	{ "wild",         TERRAIN_WILD },
+	{ "grass",        TERRAIN_GRASS },
+	{ "earth",        TERRAIN_EARTH },
+	{ "clay",         TERRAIN_CLAY },
+	{ "sand",         TERRAIN_SAND },
+	{ "water",        TERRAIN_WATER },
+	{ "water_bottom", TERRAIN_WATER_BOTTOM },
+	{ "water_deep",   TERRAIN_WATER_DEEP },
+};
+static const size_t NUM_TERRAINS = sizeof(s_terrain_lookup) / sizeof(s_terrain_lookup[0]);
+
+static uint8_t parse_terrain(const char* data) {
+	const size_t data_length = strlen(data);
+	for (size_t i = 0; i < NUM_TERRAINS; ++i) {
+		const size_t lookup_length  = strlen(s_terrain_lookup[i].key);
+		const size_t compare_length = MIN(lookup_length, data_length);
+		if (lookup_length != data_length) continue;
+		if (strncmp(s_terrain_lookup[i].key, data, compare_length) == 0) {
+			return s_terrain_lookup[i].terrain;
+		}
+	}
+	return TERRAIN_DEFAULT;
+}
+
+bool api_parse_map(struct allocator_t* alloc, const char* data, api_map_t* map) {
+	assert(alloc);
+	assert(data);
+	assert(map);
+
+	json_t* json = json_parse(alloc, data);
+	if (!json) return false;
+
+	map->x = get_object_number(json, json->tokens, "x");
+	map->y = get_object_number(json, json->tokens, "y");
+
+	const jsmntok_t* locations = json_get_value(json, json->tokens, "map");
+	assert(locations);
+	
+	for (size_t j = 0; j < locations->size; ++j) {
+		const jsmntok_t* row = get_array_value(json, locations, j);
+		assert(row && row->type == JSMN_ARRAY);
+		for (size_t i = 0; i < row->size; ++i) {
+			const jsmntok_t* loc = get_array_value(json, row, j);
+			assert(loc && loc->type == JSMN_OBJECT);
+			
+			bool is_hidden = false;
+			try_get_object_bool(json, loc, "hidden", &is_hidden);
+			if (!is_hidden) {
+				char terrain_id[MAX_API_STRING_LENGTH];
+				get_object_string(json, loc, "static_id", terrain_id, MAX_API_STRING_LENGTH);
+
+				map->terrain[i][j].is_hidden = false;
+				map->terrain[i][j].terrain   = parse_terrain(terrain_id);
+			} else {
+				map->terrain[i][j].is_hidden = true;
+			}
+		}
+	}
 
 	json_free(json);
 	return true;

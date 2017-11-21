@@ -100,6 +100,7 @@ void session_end() {
 
 static char* LOGIN_TAG = "login";
 static char* STATE_TAG = "state";
+static char* MAP_TAG   = "map";
 
 static void http_handler(const uint8_t* data, size_t size, void* payload) {
 	if (payload == LOGIN_TAG) {
@@ -120,6 +121,10 @@ static void http_handler(const uint8_t* data, size_t size, void* payload) {
 			s_ctx.synced.player.exp = state.player.exp;
 			s_ctx.is_active         = true;
 		mtx_unlock(&s_ctx.lock);
+	} else if (payload == MAP_TAG) {
+		api_map_t map;
+		bool parsed = api_parse_map(s_ctx.alloc, (const char*)data, &map);
+		assert(parsed);
 	} else {
 		log_info((const char*)data);
 		log_info("");
@@ -147,5 +152,11 @@ static void logout() {
 }
 
 static void fetch_state() {
+	log_info("[session] Fetching state");
 	http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG);
+}
+
+void session_foo() {
+	log_info("[session] Fetching map");
+	http_get("http://ancientlighthouse.com:8080/api/map/homeland_3/0/0/12", http_handler, MAP_TAG);
 }

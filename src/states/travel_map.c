@@ -132,6 +132,12 @@ void states_travel_map_init() {
 
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 	assert(session_current());
+	
+	static bool was_map_requsted;
+	if (!was_map_requsted) {
+		was_map_requsted = true;
+		session_foo();
+	}
 
 	// TODO: Setup this in _init.
 	if (s_ctx.selector_x == -1 && s_ctx.selector_y == -1) {

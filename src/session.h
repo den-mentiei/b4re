@@ -3,7 +3,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef struct resource_t {
+// TODO: @refactor Do *not* include!
+#include "world.h"
+
+typedef struct {
 	// Server time in seconds.
 	uint64_t last_update;
 	// Booster time in seconds, 3600s per segment.
@@ -20,7 +23,7 @@ typedef struct resource_t {
 	uint8_t segment_time;
 } resource_t;
 
-typedef struct session_t {
+typedef struct {
 	struct {
 		const char* username;
 		const char* avatar;
@@ -32,6 +35,8 @@ typedef struct session_t {
 		resource_t  mind;
 		resource_t  matter;
 	} player;
+
+	world_t world;
 } session_t;
 
 struct allocator_t;
@@ -44,3 +49,5 @@ const session_t* session_current();
 
 void session_start(const char* username, const char* password);
 void session_end();
+
+void session_foo();
