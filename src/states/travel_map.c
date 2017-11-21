@@ -477,7 +477,8 @@ static void render_compass() {
 	const float y =  SCREEN_SIZE - TILE - TILE * 0.5f;
 	render_sprite(s, x, y);
 
-	if (imgui_button_invisible(1, x, y, TILE, TILE)) {
+	// TODO: @robustness Use some constants for ids, unless imgui has a nice id handling.
+	if (imgui_button_invisible(100, x, y, TILE, TILE)) {
 		center_on_player();
 	}
 }
