@@ -179,7 +179,7 @@ static void reveal(uint32_t x, uint32_t y) {
 	log_info("[session] Revealing %u, %u", x, y);
 	char buf[128];
 	snprintf(buf, sizeof(buf), "http://ancientlighthouse.com:8080/api/reveal/%u/%u", x, y);
-	http_get(buf, http_handler, STATE_TAG);
+	http_get(buf, http_handler, NULL);
 }
 
 // TODO: Remove it.
