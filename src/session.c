@@ -50,6 +50,20 @@ void session_init(struct allocator_t* alloc) {
 
 	s_ctx.alloc = alloc;
 	if (mtx_init(&s_ctx.lock, mtx_plain) != thrd_success) log_fatal("[seession] failed to create mutex");
+
+	// TODO: Remove it.
+	for (size_t y = 0; y < WORLD_PLANE_SIZE; ++y) {
+		for (size_t x = 0; x < WORLD_PLANE_SIZE; ++x) {
+			if ((x & 1) == (y & 1)) {
+				s_ctx.synced.world.locations[x][y].has_data  = true;
+				s_ctx.synced.world.locations[x][y].is_hidden = false;
+				s_ctx.synced.world.locations[x][y].terrain   = TERRAIN_GRASS;
+			} else {
+				s_ctx.synced.world.locations[x][y].has_data  = true;
+				s_ctx.synced.world.locations[x][y].is_hidden = true;
+			}
+		}
+	}
 }
 
 void session_update() {

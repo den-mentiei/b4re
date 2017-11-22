@@ -4,6 +4,7 @@
 #include <stdio.h> // snprintf
 
 #include "game.h"
+#include "world.h"
 #include "log.h"
 #include "session.h"
 #include "imgui.h"
@@ -98,7 +99,28 @@ static const struct sprite_t* lookup_terrain_sprite(uint8_t t) {
 		{ TERRAIN_WATER_BOTTOM, assets_sprites()->travel_map.atlas_tiled_water_bottom },
 		{ TERRAIN_WATER_DEEP,   assets_sprites()->travel_map.atlas_tiled_water_deep },
 	};
+	const size_t N = sizeof(TERRAIN_SPRITES) / sizeof(TERRAIN_SPRITES[0]);
+	for (size_t i = 0 ; i < N; ++i) {
+		if (TERRAIN_SPRITES[i].t == t) return TERRAIN_SPRITES[i].s;
+	}
 	return TERRAIN_SPRITES[0].s;
+}
+
+static void render_incognitta_shade(size_t tx, size_t ty, float x, float y) {
+#define LOOKUP(dx, dy) session_current()->world.locations[tx + (dx)][ty + (dy)].is_hidden
+	if (tx == 0 || LOOKUP(-1, 0)) {
+		render_sprite(assets_sprites()->travel_map.shade_incognitta_left, x, y);
+	}
+	if (tx == WORLD_PLANE_SIZE - 1 || LOOKUP(1, 0)) {
+		render_sprite(assets_sprites()->travel_map.shade_incognitta_right, x, y);
+	}
+	if (ty == 0 || LOOKUP(0, -1)) {
+		render_sprite(assets_sprites()->travel_map.shade_incognitta_top, x, y);
+	}
+	if (ty == WORLD_PLANE_SIZE - 1 || LOOKUP(0, 1)) {
+		render_sprite(assets_sprites()->travel_map.shade_incognitta_bottom, x, y);
+	}
+#undef LOOKUP
 }
 
 static void render_map_view() {
@@ -130,13 +152,12 @@ static void render_map_view() {
 				.tile_x = tx % 7,
 				.tile_y = ty % 7,
 			};
-			const struct sprite_t* tilemap;
 			if (!loc->has_data || loc->is_hidden) {
-				tilemap = assets_sprites()->travel_map.atlas_tiled_warfog;
+				render_tile(assets_sprites()->travel_map.atlas_tiled_warfog, x, y, &test_tile);
 			} else {
-				tilemap = lookup_terrain_sprite(loc->terrain);
+				render_tile(lookup_terrain_sprite(loc->terrain), x, y, &test_tile);
+				render_incognitta_shade(tx, ty, x, y);
 			}
-			render_tile(tilemap, x, y, &test_tile);
 
 			snprintf(buf, 64, "%zu,%zu", tx, ty);
 			render_text(buf, x + TILE * 0.5f, y + TILE * 0.5f, &DEBUG_TEXT);
