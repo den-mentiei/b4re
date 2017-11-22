@@ -82,6 +82,25 @@ static void update_scroll() {
 	s_ctx.tile_y = new_ty;
 }
 
+static const struct sprite_t* lookup_terrain_sprite(uint8_t t) {
+	const struct { world_terrain_t t; const struct sprite_t* s; } TERRAIN_SPRITES[] = {
+		{ TERRAIN_DEFAULT,      assets_sprites()->travel_map.atlas_tiled_core },
+		{ TERRAIN_ROCK_WATER,   assets_sprites()->travel_map.atlas_tiled_rock_water },
+		{ TERRAIN_ROCK_SOLID,   assets_sprites()->travel_map.atlas_tiled_rock_solid },
+		{ TERRAIN_ROCK,         assets_sprites()->travel_map.atlas_tiled_rock },
+		{ TERRAIN_ROCK_SAND,    assets_sprites()->travel_map.atlas_tiled_rock_sand },
+		{ TERRAIN_WILD,         assets_sprites()->travel_map.atlas_tiled_wild },
+		{ TERRAIN_GRASS,        assets_sprites()->travel_map.atlas_tiled_grass },
+		{ TERRAIN_EARTH,        assets_sprites()->travel_map.atlas_tiled_earth },
+		{ TERRAIN_CLAY,         assets_sprites()->travel_map.atlas_tiled_clay },
+		{ TERRAIN_SAND,         assets_sprites()->travel_map.atlas_tiled_sand },
+		{ TERRAIN_WATER,        assets_sprites()->travel_map.atlas_tiled_water },
+		{ TERRAIN_WATER_BOTTOM, assets_sprites()->travel_map.atlas_tiled_water_bottom },
+		{ TERRAIN_WATER_DEEP,   assets_sprites()->travel_map.atlas_tiled_water_deep },
+	};
+	return TERRAIN_SPRITES[0].s;
+}
+
 static void render_map_view() {
 	const render_text_t DEBUG_TEXT = {
 		.font    = "regular",
@@ -104,8 +123,22 @@ static void render_map_view() {
 			const float  x  = ox + TILE * i;
 			const float  y  = oy + TILE * j;
 
+			const world_location_t* loc = &session_current()->world.locations[tx][ty];
+			const render_tile_t test_tile = {
+				.tile_w = TILE,
+				.tile_h = TILE,
+				.tile_x = tx % 7,
+				.tile_y = ty % 7,
+			};
+			const struct sprite_t* tilemap;
+			if (!loc->has_data || loc->is_hidden) {
+				tilemap = assets_sprites()->travel_map.atlas_tiled_warfog;
+			} else {
+				tilemap = lookup_terrain_sprite(loc->terrain);
+			}
+			render_tile(tilemap, x, y, &test_tile);
+
 			snprintf(buf, 64, "%zu,%zu", tx, ty);
-			render_sprite(assets_sprites()->common.sign_green_dark, x, y);
 			render_text(buf, x + TILE * 0.5f, y + TILE * 0.5f, &DEBUG_TEXT);
 
 			if (can_select && imgui_button_invisible(j * VIEW_TILES_PAD + i + 1, x, y, TILE, TILE)) {
@@ -115,10 +148,10 @@ static void render_map_view() {
 		}
 	}
 
-	render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy);
-	render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy + 256.0f);
-	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy);
-	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy + 256.0f);
+	/* render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy); */
+	/* render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy + 256.0f); */
+	/* render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy); */
+	/* render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy + 256.0f); */
 }
 
 static void center_on_player() {
