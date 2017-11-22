@@ -157,15 +157,15 @@ static void render_map_view() {
 			} else {
 				render_tile(lookup_terrain_sprite(loc->terrain), x, y, &test_tile);
 				render_incognitta_shade(tx, ty, x, y);
+
+				if (can_select && imgui_button_invisible(j * VIEW_TILES_PAD + i + 1, x, y, TILE, TILE)) {
+					s_ctx.selector_x = tx;
+					s_ctx.selector_y = ty;
+				}
 			}
 
 			snprintf(buf, 64, "%zu,%zu", tx, ty);
 			render_text(buf, x + TILE * 0.5f, y + TILE * 0.5f, &DEBUG_TEXT);
-
-			if (can_select && imgui_button_invisible(j * VIEW_TILES_PAD + i + 1, x, y, TILE, TILE)) {
-				s_ctx.selector_x = tx;
-				s_ctx.selector_y = ty;
-			}
 		}
 	}
 
