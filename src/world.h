@@ -21,6 +21,17 @@ typedef enum {
 	TERRAIN_WATER_DEEP,
 } world_terrain_t;
 
+typedef enum {
+	TERRAIN_CLASS_DEFAULT = 0,
+	TERRAIN_CLASS_ROCK,
+	TERRAIN_CLASS_WILD,
+	TERRAIN_CLASS_GRASS,
+	TERRAIN_CLASS_EARTH,
+	TERRAIN_CLASS_CLAY,
+	TERRAIN_CLASS_SAND,
+	TERRAIN_CLASS_WATER,
+} world_terrain_class_t;
+
 typedef struct {
 	// TODO: @optimize Union?
 	uint8_t terrain;
