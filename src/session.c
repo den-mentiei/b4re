@@ -4,6 +4,9 @@
 #include <string.h> // memset, memcpy, strcpy
 #include <stdio.h>  // snprintf
 
+#include <math.h>   // floor
+#include <stdlib.h> // random
+
 #include <tinycthread.h>
 
 #include "allocator.h"
@@ -47,6 +50,10 @@ static bool safe_is_active() {
 	return is_active;
 }
 
+static uint8_t randi(uint8_t max) {
+	return floor(((float)rand() / RAND_MAX) * max);
+}
+
 void session_init(struct allocator_t* alloc) {
 	assert(alloc);
 
@@ -56,10 +63,10 @@ void session_init(struct allocator_t* alloc) {
 	// TODO: Remove it.
 	for (size_t y = 0; y < WORLD_PLANE_SIZE; ++y) {
 		for (size_t x = 0; x < WORLD_PLANE_SIZE; ++x) {
-			if ((x & 1) == ((y + 1) & 1)) {
+			if ((float)rand() / RAND_MAX > 0.5f) {
 				s_ctx.synced.world.locations[x][y].has_data  = true;
 				s_ctx.synced.world.locations[x][y].is_hidden = false;
-				s_ctx.synced.world.locations[x][y].terrain   = TERRAIN_GRASS;
+				s_ctx.synced.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP);
 			} else {
 				s_ctx.synced.world.locations[x][y].has_data  = true;
 				s_ctx.synced.world.locations[x][y].is_hidden = true;
