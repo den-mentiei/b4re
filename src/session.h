@@ -50,4 +50,6 @@ const session_t* session_current();
 void session_start(const char* username, const char* password);
 void session_end();
 
+void session_reveal(uint32_t x, uint32_t y);
+
 void session_foo();

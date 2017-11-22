@@ -189,6 +189,8 @@ static void render_reveal() {
 	const uint32_t px = session_current()->player.x;
 	const uint32_t py = session_current()->player.y;
 
+	bool can_select = !input_dragging(INPUT_BUTTON_LEFT);
+
 	for (size_t i = 0; i < N; ++i) {
 		const int64_t nx = px + LOOKUP[i].dx;
 		const int64_t ny = py + LOOKUP[i].dy;
@@ -198,6 +200,10 @@ static void render_reveal() {
 			session_current()->world.locations[nx][ny].is_hidden)
 		{
 			render_sprite(assets_sprites()->travel_map.eye_mind, x, y);
+			const int64_t id = ny * WORLD_PLANE_SIZE + nx + 1;
+			if (can_select && imgui_button_invisible(id, x, y, TILE, TILE)) {
+				session_reveal(nx, ny);
+			}
 		}
 	}
 }

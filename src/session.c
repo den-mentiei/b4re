@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <string.h> // memset, memcpy, strcpy
+#include <stdio.h>  // snprintf
 
 #include <tinycthread.h>
 
@@ -29,6 +30,7 @@ static struct {
 static void login(const char* username, const char* password);
 static void logout();
 static void fetch_state();
+static void reveal(uint32_t x, uint32_t y);
 /// API END
 
 static bool safe_is_logged_in() {
@@ -92,7 +94,6 @@ const session_t* session_current() {
 
 void session_start(const char* username, const char* password) {
 	assert(!safe_is_active());
-
 	login(username, password);
 }
 
@@ -108,6 +109,11 @@ void session_end() {
 	mtx_unlock(&s_ctx.lock);
 
 	memset(&s_ctx.current, 0, sizeof(session_t));
+}
+
+void session_reveal(uint32_t x, uint32_t y) {
+	assert(safe_is_active());
+	reveal(x, y);
 }
 
 /// API stuff
@@ -161,7 +167,6 @@ static void login(const char* username, const char* password) {
 
 static void logout() {
 	log_info("[session] Logging out");
-
 	http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL);
 }
 
@@ -170,7 +175,17 @@ static void fetch_state() {
 	http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG);
 }
 
+static void reveal(uint32_t x, uint32_t y) {
+	log_info("[session] Revealing %u, %u", x, y);
+	char buf[128];
+	snprintf(buf, sizeof(buf), "http://ancientlighthouse.com:8080/api/reveal/%u/%u", x, y);
+	http_get(buf, http_handler, STATE_TAG);
+}
+
+// TODO: Remove it.
+
 void session_foo() {
 	log_info("[session] Fetching map");
 	http_get("http://ancientlighthouse.com:8080/api/map/homeland_3/0/0/12", http_handler, MAP_TAG);
 }
+
