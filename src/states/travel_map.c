@@ -169,10 +169,37 @@ static void render_map_view() {
 		}
 	}
 
-	/* render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy); */
-	/* render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy + 256.0f); */
-	/* render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy); */
-	/* render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy + 256.0f); */
+	render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy);
+	render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy + 256.0f);
+	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy);
+	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy + 256.0f);
+}
+
+static void render_reveal() {
+	const struct { int8_t dx; int8_t dy; } LOOKUP[] = {
+		{ -1,  0 },
+		{  1,  0 },
+		{  0, -1 },
+		{  0,  1 },
+	};
+	const size_t N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
+
+	const float    ox = VIEW_OFFSET + s_ctx.map_x;
+	const float    oy = VIEW_OFFSET + s_ctx.map_y;
+	const uint32_t px = session_current()->player.x;
+	const uint32_t py = session_current()->player.y;
+
+	for (size_t i = 0; i < N; ++i) {
+		const int64_t nx = px + LOOKUP[i].dx;
+		const int64_t ny = py + LOOKUP[i].dy;
+		const float   x  = ox + TILE * (nx - s_ctx.tile_x) + TILE * 0.25f;
+		const float   y  = oy + TILE * (ny - s_ctx.tile_y) + TILE * 0.25f;
+		if (nx >= 0 && nx < WORLD_PLANE_SIZE && ny >= 0 && ny < WORLD_PLANE_SIZE &&
+			session_current()->world.locations[nx][ny].is_hidden)
+		{
+			render_sprite(assets_sprites()->travel_map.eye_mind, x, y);
+		}
+	}
 }
 
 static void center_on_player() {
@@ -581,6 +608,7 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_map_view();
 	render_movement();
 	render_player();
+	render_reveal();
 	render_selector();
 	render_chrome();
 	render_compass();

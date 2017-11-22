@@ -54,7 +54,7 @@ void session_init(struct allocator_t* alloc) {
 	// TODO: Remove it.
 	for (size_t y = 0; y < WORLD_PLANE_SIZE; ++y) {
 		for (size_t x = 0; x < WORLD_PLANE_SIZE; ++x) {
-			if ((x & 1) == (y & 1)) {
+			if ((x & 1) == ((y + 1) & 1)) {
 				s_ctx.synced.world.locations[x][y].has_data  = true;
 				s_ctx.synced.world.locations[x][y].is_hidden = false;
 				s_ctx.synced.world.locations[x][y].terrain   = TERRAIN_GRASS;
