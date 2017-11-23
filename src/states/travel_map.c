@@ -350,7 +350,7 @@ static void resource_indicator_value_render(const resource_t* res, const indicat
 	const float dx = reversed ? -32.0f : 32.0f;
 
 	const float tx = x + (reversed ? (dx * NUM_BODY_SEGMENTS) : 32.0f + 8.0f);
-	const float ty = y + 16.0f - 1.0f;
+	const float ty = y + 16.0f - 2.0f;
 
 	render_sprite(params->icon, x, y);
 	x += dx;
@@ -638,7 +638,7 @@ static void render_movement() {
 			render_sprite(arrow.s, x + arrow.dx, y + arrow.dy);
 		}
 
-		const struct sprite_t* p = get_path_point(tx0, tx0);
+		const struct sprite_t* p = get_path_point(tx0, ty0);
 		render_sprite(p, x + TILE * 0.25f, y + TILE * 0.25f);
 		render_text(buf, x + TILE * 0.5f,  y + TILE * 0.5f - 1.0f, &TEXT);
 	}
