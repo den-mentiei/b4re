@@ -63,14 +63,17 @@ void session_init(struct allocator_t* alloc) {
 	// TODO: Remove it.
 	for (size_t y = 0; y < WORLD_PLANE_SIZE; ++y) {
 		for (size_t x = 0; x < WORLD_PLANE_SIZE; ++x) {
-			if ((float)rand() / RAND_MAX > 0.5f) {
-				s_ctx.synced.world.locations[x][y].has_data  = true;
-				s_ctx.synced.world.locations[x][y].is_hidden = false;
-				s_ctx.synced.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP);
-			} else {
-				s_ctx.synced.world.locations[x][y].has_data  = true;
-				s_ctx.synced.world.locations[x][y].is_hidden = true;
-			}
+			s_ctx.synced.world.locations[x][y].has_data  = true;
+			s_ctx.synced.world.locations[x][y].is_hidden = false;
+			s_ctx.synced.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP);
+			/* if ((float)rand() / RAND_MAX > 0.5f) { */
+			/* 	s_ctx.synced.world.locations[x][y].has_data  = true; */
+			/* 	s_ctx.synced.world.locations[x][y].is_hidden = false; */
+			/* 	s_ctx.synced.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP); */
+			/* } else { */
+			/* 	s_ctx.synced.world.locations[x][y].has_data  = true; */
+			/* 	s_ctx.synced.world.locations[x][y].is_hidden = true; */
+			/* } */
 		}
 	}
 }
