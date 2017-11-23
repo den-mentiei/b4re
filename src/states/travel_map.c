@@ -337,7 +337,7 @@ static void resource_indicator_value_render(const resource_t* res, const indicat
 	const float dx = reversed ? -32.0f : 32.0f;
 
 	const float tx = x + (reversed ? (dx * NUM_BODY_SEGMENTS) : 32.0f + 8.0f);
-	const float ty = y + 16.0f;
+	const float ty = y + 16.0f - 1.0f;
 
 	render_sprite(params->icon, x, y);
 	x += dx;
@@ -391,7 +391,7 @@ static void render_coordinates(float x, float y, uint8_t tiles_x, uint8_t tiles_
 
 static void render_resources() {
 	const indicator_rendering_t mind_rendering = {
-		.zeros_color  = render_color(0x0D, 0x27, 0x34),
+		.zeros_color = render_color(0x0D, 0x27, 0x34),
 		.value_color = render_color(0x00, 0xC8, 0xFF),
 		.max_color   = render_color(0x3F, 0x6C, 0x83),
 
@@ -429,7 +429,7 @@ static void render_resources() {
 		}
 	};
 	const indicator_rendering_t matter_rendering = {
-		.zeros_color  = render_color(0x2D, 0x07, 0x07),
+		.zeros_color = render_color(0x2D, 0x07, 0x07),
 		.value_color = render_color(0xFF, 0x37, 0x00),
 		.max_color   = render_color(0x7E, 0x29, 0x29),
 
@@ -701,5 +701,5 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	render_chrome();
 	render_compass();
 	render_resources();
-	render_coordinates(5 * 32.0f, 512.0f - 32.0f, s_ctx.selector_x, s_ctx.selector_y);
+	render_coordinates(5 * 32.0f, 512.0f - 32.0f - 2.0f, s_ctx.selector_x, s_ctx.selector_y);
 }
