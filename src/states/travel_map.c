@@ -492,39 +492,108 @@ static struct { uint8_t t; uint8_t c; } TERRAIN_CLASS[] = {
 	{ TERRAIN_WATER_DEEP,   TERRAIN_CLASS_WATER   },
 };
 
-static void render_movement() {
+static uint8_t get_terrain_class(uint32_t tx, uint32_t ty) {
+	const size_t  N = sizeof(TERRAIN_CLASS) / sizeof(TERRAIN_CLASS[0]);
+	const uint8_t t = session_current()->world.locations[tx][ty].terrain;
+	for (size_t i = 0; i < N; ++i) {
+		if (TERRAIN_CLASS[i].t == t) return TERRAIN_CLASS[i].c;
+	}
+	return TERRAIN_CLASS_DEFAULT;
+}
+
+static size_t get_arrow_index(uint32_t tx0, uint32_t ty0, uint32_t tx1, uint32_t ty1) {
+	assert(tx0 != tx1 || ty0 != ty1);
+
+	// n s w e
+	// 0 1 2 3
+
+	if (ty1 < ty0) return 0;
+	if (ty1 > ty0) return 1;
+	if (tx1 < tx0) return 2;
+	if (tx1 > tx0) return 3;
+
+	assert(false);
+	return 0;
+}
+
+typedef struct {
+	const struct sprite_t* s;
+	float dx;
+	float dy;
+} arrow_t;
+static void get_arrow(uint32_t tx0, uint32_t ty0, uint32_t tx1, uint32_t ty1, arrow_t* out) {
 #define SPRITE(s)     assets_sprites()->travel_map.s
 #define DIR_SPRITE(s) SPRITE(direction_##s)
 #define DIRECTIONS(s) { DIR_SPRITE(north_##s), DIR_SPRITE(south_##s), DIR_SPRITE(west_##s), DIR_SPRITE(east_##s) }
-#define POINT(s)      SPRITE(point_##s)
 	const struct {
 		uint8_t c;
 		// n s w e
 		const struct sprite_t* arrows[4];
-		const struct sprite_t* p;
 	} LOOKUP[] = {
-		{ TERRAIN_CLASS_DEFAULT, DIRECTIONS(rock),  POINT(rock)  },
-		{ TERRAIN_CLASS_ROCK,    DIRECTIONS(rock),  POINT(rock)  },
-		{ TERRAIN_CLASS_WILD,    DIRECTIONS(wild),  POINT(wild)  },
-		{ TERRAIN_CLASS_GRASS,   DIRECTIONS(grass), POINT(grass) },
-		{ TERRAIN_CLASS_EARTH,   DIRECTIONS(earth), POINT(earth) },
-		{ TERRAIN_CLASS_CLAY,    DIRECTIONS(clay),  POINT(clay)  },
-		{ TERRAIN_CLASS_SAND,    DIRECTIONS(sand),  POINT(sand)  },
-		{ TERRAIN_CLASS_WATER,   DIRECTIONS(water), POINT(water) },
+		{ TERRAIN_CLASS_DEFAULT, DIRECTIONS(rock)  },
+		{ TERRAIN_CLASS_ROCK,    DIRECTIONS(rock)  },
+		{ TERRAIN_CLASS_WILD,    DIRECTIONS(wild)  },
+		{ TERRAIN_CLASS_GRASS,   DIRECTIONS(grass) },
+		{ TERRAIN_CLASS_EARTH,   DIRECTIONS(earth) },
+		{ TERRAIN_CLASS_CLAY,    DIRECTIONS(clay)  },
+		{ TERRAIN_CLASS_SAND,    DIRECTIONS(sand)  },
+		{ TERRAIN_CLASS_WATER,   DIRECTIONS(water) },
 	};
+	const size_t N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
 #undef SPRITE
 #undef DIR_SPRITE
 #undef DIRECTIONS
-#undef POINT
 
 	// n s w e
 	const struct { float dx; float dy; } ARROW_OFFSETS[] = {
-		{ 0.0f,         -TILE * 0.5f },
-		{ 0.0f,          TILE * 0.5f },
+		{  0.0f,        -TILE * 0.5f },
+		{  0.0f,         TILE * 0.5f },
 		{ -TILE * 0.5f,  0.0f },
 		{  TILE * 0.5f,  0.0f },
 	};
 
+	assert(out);
+
+	const uint8_t c = get_terrain_class(tx1, ty1);
+	const size_t  a = get_arrow_index(tx0, ty0, tx1, ty1);
+
+	out->dx = ARROW_OFFSETS[a].dx;
+	out->dy = ARROW_OFFSETS[a].dy;
+	
+	for (size_t i = 0; i < N; ++i) {
+		if (LOOKUP[i].c == c) {
+			out->s = LOOKUP[i].arrows[a];
+			return;
+		}
+	}
+	out->s = LOOKUP[0].arrows[a];
+}
+
+static const struct sprite_t* get_path_point(uint32_t tx, uint32_t ty) {
+#define POINT(s) assets_sprites()->travel_map.point_##s
+	const struct {
+		uint8_t c;
+		const struct sprite_t* p;
+	} LOOKUP[] = {
+		{ TERRAIN_CLASS_DEFAULT, POINT(rock)  },
+		{ TERRAIN_CLASS_ROCK,    POINT(rock)  },
+		{ TERRAIN_CLASS_WILD,    POINT(wild)  },
+		{ TERRAIN_CLASS_GRASS,   POINT(grass) },
+		{ TERRAIN_CLASS_EARTH,   POINT(earth) },
+		{ TERRAIN_CLASS_CLAY,    POINT(clay)  },
+		{ TERRAIN_CLASS_SAND,    POINT(sand)  },
+		{ TERRAIN_CLASS_WATER,   POINT(water) },
+	};
+#undef POINT
+	const size_t  N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
+	const uint8_t c = get_terrain_class(tx, ty);
+	for (size_t i = 0; i < N; ++i) {
+		if (LOOKUP[i].c == c) return LOOKUP[i].p;
+	}
+	return LOOKUP[0].p;
+}
+
+static void render_movement() {
 	const struct { uint32_t tx; uint32_t ty; } steps[] = {
 		{ 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 },
 		{ 5, 1 }, { 4, 1 }, { 3, 1 }, { 2, 1 }, { 1, 1 }, { 0, 1 },
@@ -549,14 +618,19 @@ static void render_movement() {
 
 		snprintf(buf, sizeof(buf), "%zu", i);
 
+		const uint32_t tx0 = s_ctx.tile_x + steps[i].tx;
+		const uint32_t ty0 = s_ctx.tile_y + steps[i].ty;
 		if (i != NUM_STEPS - 1) {
-			const size_t a  = i % 4;
-			const float  ax = x + ARROW_OFFSETS[a].dx;
-			const float  ay = y + ARROW_OFFSETS[a].dy;
-			render_sprite(LOOKUP[0].arrows[a], ax, ay);
+			const uint32_t tx1 = s_ctx.tile_x + steps[i + 1].tx;
+			const uint32_t ty1 = s_ctx.tile_y + steps[i + 1].ty;
+
+			arrow_t arrow;
+			get_arrow(tx0, ty0, tx1, ty1, &arrow);
+			render_sprite(arrow.s, x + arrow.dx, y + arrow.dy);
 		}
 
-		render_sprite(LOOKUP[0].p, x + TILE * 0.25f, y + TILE * 0.25f);
+		const struct sprite_t* p = get_path_point(tx0, tx0);
+		render_sprite(p, x + TILE * 0.25f, y + TILE * 0.25f);
 		render_text(buf, x + TILE * 0.5f, y + TILE * 0.5f - 1.0f, &TEXT);
 	}
 }
