@@ -22,11 +22,16 @@ static const float  VIEW_SIZE      = VIEW_TILES * TILE;
 static const float  VIEW_OFFSET    = 0.5f * TILE;
 static const float  SCREEN_SIZE    = 8    * TILE;
 
+#define MAX_PATH_LENGTH 100
+
 static struct {
 	float map_x;
 	float map_y;
 	int   tile_x;
 	int   tile_y;
+
+	size_t num_steps;
+	struct { uint32_t tx; uint32_t ty; } steps[MAX_PATH_LENGTH];
 
 	int  selector_x;
 	int  selector_y;
@@ -159,8 +164,11 @@ static void render_map_view() {
 				render_incognitta_shade(tx, ty, x, y);
 
 				if (can_select && imgui_button_invisible(j * VIEW_TILES_PAD + i + 1, x, y, TILE, TILE)) {
-					s_ctx.selector_x = tx;
-					s_ctx.selector_y = ty;
+					//s_ctx.selector_x = tx;
+					//s_ctx.selector_y = ty;
+					s_ctx.steps[s_ctx.num_steps].tx = tx;
+					s_ctx.steps[s_ctx.num_steps].ty = ty;
+					++s_ctx.num_steps;
 				}
 			}
 
@@ -218,6 +226,11 @@ static void center_on_player() {
 	s_ctx.tile_y      = py - OFFSET_TO_CENTER;
 	s_ctx.selector_x  = px;
 	s_ctx.selector_y  = py;
+
+	// TODO: Remove it.
+	s_ctx.steps[0].tx = px;
+	s_ctx.steps[0].ty = py;
+	s_ctx.num_steps   = 1;
 }
 
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
@@ -594,11 +607,7 @@ static const struct sprite_t* get_path_point(uint32_t tx, uint32_t ty) {
 }
 
 static void render_movement() {
-	const struct { uint32_t tx; uint32_t ty; } steps[] = {
-		{ 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 },
-		{ 5, 1 }, { 4, 1 }, { 3, 1 }, { 2, 1 }, { 1, 1 }, { 0, 1 },
-	};
-	const size_t NUM_STEPS = sizeof(steps) / sizeof(steps[0]);
+	if (s_ctx.num_steps < 2) return;
 
 	const render_text_t TEXT = {
 		.font    = "regular",
@@ -612,17 +621,17 @@ static void render_movement() {
 
 	char buf[64];
 
-	for (size_t i = 0; i < NUM_STEPS; ++i) {
-		const float x = ox + TILE * steps[i].tx;
-		const float y = oy + TILE * steps[i].ty;
+	for (size_t i = 0; i < s_ctx.num_steps; ++i) {
+		const float x = ox + TILE * (s_ctx.steps[i].tx - s_ctx.tile_x);
+		const float y = oy + TILE * (s_ctx.steps[i].ty - s_ctx.tile_y);
 
 		snprintf(buf, sizeof(buf), "%zu", i);
 
-		const uint32_t tx0 = s_ctx.tile_x + steps[i].tx;
-		const uint32_t ty0 = s_ctx.tile_y + steps[i].ty;
-		if (i != NUM_STEPS - 1) {
-			const uint32_t tx1 = s_ctx.tile_x + steps[i + 1].tx;
-			const uint32_t ty1 = s_ctx.tile_y + steps[i + 1].ty;
+		const uint32_t tx0 = s_ctx.steps[i].tx;
+		const uint32_t ty0 = s_ctx.steps[i].ty;
+		if (i != s_ctx.num_steps - 1) {
+			const uint32_t tx1 = s_ctx.steps[i + 1].tx;
+			const uint32_t ty1 = s_ctx.steps[i + 1].ty;
 
 			arrow_t arrow;
 			get_arrow(tx0, ty0, tx1, ty1, &arrow);
@@ -631,7 +640,7 @@ static void render_movement() {
 
 		const struct sprite_t* p = get_path_point(tx0, tx0);
 		render_sprite(p, x + TILE * 0.25f, y + TILE * 0.25f);
-		render_text(buf, x + TILE * 0.5f, y + TILE * 0.5f - 1.0f, &TEXT);
+		render_text(buf, x + TILE * 0.5f,  y + TILE * 0.5f - 1.0f, &TEXT);
 	}
 }
 
