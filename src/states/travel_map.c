@@ -175,6 +175,14 @@ static bool path_can_start_drawing() {
 	if (s_ctx.selector_x == px && s_ctx.selector_y == py) {
 		if (is_tile_dragged(px, py)) return true;
 	}
+
+	// TODO: @optimize Pick a tile by input x,y and test it.
+	for (size_t tx = s_ctx.tile_x; tx < s_ctx.tile_x + VIEW_TILES_PAD; ++tx) {
+		for (size_t ty = s_ctx.tile_y; ty < s_ctx.tile_y + VIEW_TILES_PAD; ++ty) {
+			if (path_contains(tx, ty) && is_tile_dragged(tx, ty)) return true;
+		}
+	}
+
 	return false;
 }
 
