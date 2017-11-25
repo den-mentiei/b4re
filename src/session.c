@@ -15,7 +15,7 @@
 
 #include "api.h"
 
-#define AUTO_UPDATE_INTERVALS_SECONDS 1.0f
+#define AUTO_UPDATE_INTERVALS_MS 1000.0f
 
 static struct {
 	allocator_t* alloc;
@@ -90,15 +90,15 @@ void session_update(float dt) {
 	memcpy(&s_ctx.current, &s_ctx.synced, sizeof(session_t));
 	mtx_unlock(&s_ctx.lock);
 
-	static bool was_state_fetched = false;
 	if (safe_is_logged_in()) {
-		if (!was_state_fetched) {
-			was_state_fetched = true;
+		s_ctx.t -= dt;
+		if (s_ctx.t < 0.0f) {
+			s_ctx.t = AUTO_UPDATE_INTERVALS_MS;
+			
+			// TODO: Do not issue a request if last one was not responded, yet.
 			log_info("[session] Fetching state");
 			http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG);
 		}
-	} else {
-		was_state_fetched = false;
 	}
 }
 
