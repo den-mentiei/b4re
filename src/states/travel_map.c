@@ -1,7 +1,8 @@
 #include "travel_map.h"
 
 #include <assert.h>
-#include <stdio.h> // snprintf
+#include <stdio.h>  // snprintf
+#include <stdlib.h> // abs
 
 #include "game.h"
 #include "world.h"
@@ -31,12 +32,92 @@ static struct {
 	int   tile_y;
 
 	size_t num_steps;
-	struct { uint32_t tx; uint32_t ty; } steps[MAX_PATH_LENGTH];
+	struct {
+		int32_t tx;
+		int32_t ty;
+		uint8_t price;
+	} steps[MAX_PATH_LENGTH];
 
 	int  selector_x;
 	int  selector_y;
 	bool has_selector;
 } s_ctx;
+
+// HELPERS
+// =======
+
+static bool is_on_plane(int32_t tx, int32_t ty) {
+	return tx >= 0 && tx < WORLD_PLANE_SIZE &&
+	       ty >= 0 && ty < WORLD_PLANE_SIZE;
+}
+
+static bool are_neighbours(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
+	int32_t dx = abs(tx0 - tx1);
+	int32_t dy = abs(ty0 - ty1);
+	return is_on_plane(tx0, ty0) && is_on_plane(tx1, ty1) && ((dx + dy) == 1);
+}
+
+static bool are_diagonal_only_neighbours(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
+	int32_t dx = abs(tx0 - tx1);
+	int32_t dy = abs(ty0 - ty1);
+	return is_on_plane(tx0, ty0) && is_on_plane(tx1, ty1) && dx == 1 && dy == 1;
+}
+
+// STEPS MANAGEMENT
+// ================
+
+static void path_reset() {
+	s_ctx.num_steps = 0;
+}
+
+static void path_add_step(int32_t tx, int32_t ty) {
+	s_ctx.steps[s_ctx.num_steps].tx    = tx;
+	s_ctx.steps[s_ctx.num_steps].ty    = ty;
+	s_ctx.steps[s_ctx.num_steps].price = 1;
+	++s_ctx.num_steps;
+}
+
+static bool path_try_reset(int32_t tx, int32_t ty) {
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
+	if (tx == px && ty == py) {
+		// TODO: Reset path;
+		return true;
+	}
+	/* 	if (_pathSteps.Any() && _pathSteps.ContainsKey(p) && p != _orderedPath.Last()) { */
+	/* 		ResetPathUpTo(p); */
+	/* 		return true; */
+	/* 	} */
+	return false;
+}
+
+static bool path_try_step(int32_t tx, int32_t ty) {
+	if (path_try_reset(tx, ty)) {
+		return true;
+	}
+	// TODO: Calculate price, validate it, etc.
+	path_add_step(tx, ty);
+	return true;
+}
+
+static void path_input(int32_t tx, int32_t ty) {
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
+	
+	const int32_t sx = s_ctx.num_steps > 0 ? s_ctx.steps[s_ctx.num_steps - 1].tx : px;
+	const int32_t sy = s_ctx.num_steps > 0 ? s_ctx.steps[s_ctx.num_steps - 1].ty : py;
+
+	if (are_diagonal_only_neighbours(sx, sy, tx, ty)) {
+		// TODO: Step diagonally.
+	} else if (are_neighbours(sx, sy, tx, ty)) {
+		path_try_step(tx, ty);
+	} else /*if(reset_path?)*/ {
+		// TODO: Reset path at tx,ty.
+	}
+}
+
+// SCROLL MANAGEMENT
+// =================
 
 static void update_scroll() {
 	float x, y;
@@ -166,9 +247,8 @@ static void render_map_view() {
 				if (can_select && imgui_button_invisible(j * VIEW_TILES_PAD + i + 1, x, y, TILE, TILE)) {
 					//s_ctx.selector_x = tx;
 					//s_ctx.selector_y = ty;
-					s_ctx.steps[s_ctx.num_steps].tx = tx;
-					s_ctx.steps[s_ctx.num_steps].ty = ty;
-					++s_ctx.num_steps;
+					// TODO: Remove it.
+					path_input(tx, ty);
 				}
 			}
 
@@ -226,11 +306,6 @@ static void center_on_player() {
 	s_ctx.tile_y      = py - OFFSET_TO_CENTER;
 	s_ctx.selector_x  = px;
 	s_ctx.selector_y  = py;
-
-	// TODO: Remove it.
-	s_ctx.steps[0].tx = px;
-	s_ctx.steps[0].ty = py;
-	s_ctx.num_steps   = 1;
 }
 
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
@@ -606,8 +681,19 @@ static const struct sprite_t* get_path_point(uint32_t tx, uint32_t ty) {
 	return LOOKUP[0].p;
 }
 
+static void render_movement_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
+	const float ox = VIEW_OFFSET + s_ctx.map_x;
+	const float oy = VIEW_OFFSET + s_ctx.map_y;
+	const float x  = ox + TILE * (tx0 - s_ctx.tile_x);
+	const float y  = oy + TILE * (ty0 - s_ctx.tile_y);
+
+	arrow_t arrow;
+	get_arrow(tx0, ty0, tx1, ty1, &arrow);
+	render_sprite(arrow.s, x + arrow.dx, y + arrow.dy);
+}
+
 static void render_movement() {
-	if (s_ctx.num_steps < 2) return;
+	if (s_ctx.num_steps == 0) return;
 
 	const render_text_t TEXT = {
 		.font    = "regular",
@@ -619,25 +705,24 @@ static void render_movement() {
 	const float ox = VIEW_OFFSET + s_ctx.map_x;
 	const float oy = VIEW_OFFSET + s_ctx.map_y;
 
-	char buf[64];
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
+	render_movement_arrow(px, py, s_ctx.steps[0].tx, s_ctx.steps[0].ty);
 
 	for (size_t i = 0; i < s_ctx.num_steps; ++i) {
-		const float x = ox + TILE * (s_ctx.steps[i].tx - s_ctx.tile_x);
-		const float y = oy + TILE * (s_ctx.steps[i].ty - s_ctx.tile_y);
-
-		snprintf(buf, sizeof(buf), "%zu", i);
-
 		const uint32_t tx0 = s_ctx.steps[i].tx;
 		const uint32_t ty0 = s_ctx.steps[i].ty;
+		const float    x   = ox + TILE * (tx0 - s_ctx.tile_x);
+		const float    y   = oy + TILE * (ty0 - s_ctx.tile_y);
+
 		if (i != s_ctx.num_steps - 1) {
 			const uint32_t tx1 = s_ctx.steps[i + 1].tx;
 			const uint32_t ty1 = s_ctx.steps[i + 1].ty;
-
-			arrow_t arrow;
-			get_arrow(tx0, ty0, tx1, ty1, &arrow);
-			render_sprite(arrow.s, x + arrow.dx, y + arrow.dy);
+			render_movement_arrow(tx0, ty0, tx1, ty1);
 		}
 
+		char buf[64];
+		snprintf(buf, sizeof(buf), "%hhu", s_ctx.steps[i].price);
 		const struct sprite_t* p = get_path_point(tx0, ty0);
 		render_sprite(p, x + TILE * 0.25f, y + TILE * 0.25f);
 		render_text(buf, x + TILE * 0.5f,  y + TILE * 0.5f - 1.0f, &TEXT);
