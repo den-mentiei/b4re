@@ -169,21 +169,14 @@ static void path_input(int32_t tx, int32_t ty) {
 	}
 }
 
-static bool path_can_start_drawing() {
+static bool path_can_start_from(int32_t tx, int32_t ty) {
 	const int32_t px = session_current()->player.x;
 	const int32_t py = session_current()->player.y;
 	if (s_ctx.selector_x == px && s_ctx.selector_y == py) {
-		if (is_tile_dragged(px, py)) return true;
+		if (tx == px && ty == py) return true;
 	}
 
-	// TODO: @optimize Pick a tile by input x,y and test it.
-	for (size_t tx = s_ctx.tile_x; tx < s_ctx.tile_x + VIEW_TILES_PAD; ++tx) {
-		for (size_t ty = s_ctx.tile_y; ty < s_ctx.tile_y + VIEW_TILES_PAD; ++ty) {
-			if (path_contains(tx, ty) && is_tile_dragged(tx, ty)) return true;
-		}
-	}
-
-	return false;
+	return path_contains(tx, ty);
 }
 
 // SCROLL MANAGEMENT
@@ -238,25 +231,87 @@ static void scroll_update() {
 	s_ctx.tile_y = new_ty;
 }
 
-// MAP VIEW RENDERING
-// ==================
+// MAP VIEW
+// ========
+
+static bool map_view_pick_tile(float x, float y, int32_t* tx, int32_t* ty) {
+	assert(tx);
+	assert(ty);
+
+	if (!is_in_rect(VIEW_OFFSET, VIEW_OFFSET, VIEW_SIZE, VIEW_SIZE, x, y)) {
+		return false;
+	}
+
+	const float ox = VIEW_OFFSET + s_ctx.map_x;
+	const float oy = VIEW_OFFSET + s_ctx.map_y;
+
+	for (size_t i = 0; i < VIEW_TILES_PAD; ++i) {
+		for (size_t j = 0; j < VIEW_TILES_PAD; ++j) {
+			const float px = ox + TILE * i;
+			const float py = oy + TILE * j;
+
+			if (is_in_rect(px, py, TILE, TILE, x, y)) {
+				*tx = s_ctx.tile_x + i;
+				*ty = s_ctx.tile_y + j;
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+static void map_view_update() {
+	float x, y;
+	input_position(&x, &y);
+
+	int32_t tx, ty;
+	if (map_view_pick_tile(x, y, &tx, &ty)) {
+		if (input_button_clicked(INPUT_BUTTON_LEFT)) {
+			if (path_contains(tx, ty)) {
+				// TODO: Split & walk.
+				log_info("[travel map] Walking to %d, %d", tx, ty);
+			} else if (session_current()->world.locations[tx][ty].is_hidden) {
+				session_reveal(tx, ty);
+			} else {
+				s_ctx.selector_x = tx;
+				s_ctx.selector_y = ty;
+			}
+		}
+
+		if (!s_ctx.is_drawing && input_dragging(INPUT_BUTTON_LEFT)) {
+			s_ctx.is_drawing = path_can_start_from(tx, ty);
+		}
+		if (s_ctx.is_drawing) {
+			s_ctx.is_drawing = input_dragging(INPUT_BUTTON_LEFT);
+			path_input(tx, ty);
+		} else {
+			s_ctx.is_scrolling = input_dragging(INPUT_BUTTON_LEFT);
+			if (s_ctx.is_scrolling) {
+				scroll_update();
+			}
+		}
+	}
+}
 
 static const struct sprite_t* lookup_terrain_sprite(uint8_t t) {
+#define SPRITE(s) assets_sprites()->travel_map.atlas_tiled_##s
 	const struct { world_terrain_t t; const struct sprite_t* s; } TERRAIN_SPRITES[] = {
-		{ TERRAIN_DEFAULT,      assets_sprites()->travel_map.atlas_tiled_core },
-		{ TERRAIN_ROCK_WATER,   assets_sprites()->travel_map.atlas_tiled_rock_water },
-		{ TERRAIN_ROCK_SOLID,   assets_sprites()->travel_map.atlas_tiled_rock_solid },
-		{ TERRAIN_ROCK,         assets_sprites()->travel_map.atlas_tiled_rock },
-		{ TERRAIN_ROCK_SAND,    assets_sprites()->travel_map.atlas_tiled_rock_sand },
-		{ TERRAIN_WILD,         assets_sprites()->travel_map.atlas_tiled_wild },
-		{ TERRAIN_GRASS,        assets_sprites()->travel_map.atlas_tiled_grass },
-		{ TERRAIN_EARTH,        assets_sprites()->travel_map.atlas_tiled_earth },
-		{ TERRAIN_CLAY,         assets_sprites()->travel_map.atlas_tiled_clay },
-		{ TERRAIN_SAND,         assets_sprites()->travel_map.atlas_tiled_sand },
-		{ TERRAIN_WATER,        assets_sprites()->travel_map.atlas_tiled_water },
-		{ TERRAIN_WATER_BOTTOM, assets_sprites()->travel_map.atlas_tiled_water_bottom },
-		{ TERRAIN_WATER_DEEP,   assets_sprites()->travel_map.atlas_tiled_water_deep },
+		{ TERRAIN_DEFAULT,      SPRITE(core)         },
+		{ TERRAIN_ROCK_WATER,   SPRITE(water)        },
+		{ TERRAIN_ROCK_SOLID,   SPRITE(rock_solid)   },
+		{ TERRAIN_ROCK,         SPRITE(rock)         },
+		{ TERRAIN_ROCK_SAND,    SPRITE(rock_sand)    },
+		{ TERRAIN_WILD,         SPRITE(wild)         },
+		{ TERRAIN_GRASS,        SPRITE(grass)        },
+		{ TERRAIN_EARTH,        SPRITE(earth)        },
+		{ TERRAIN_CLAY,         SPRITE(clay)         },
+		{ TERRAIN_SAND,         SPRITE(sand)         },
+		{ TERRAIN_WATER,        SPRITE(water)        },
+		{ TERRAIN_WATER_BOTTOM, SPRITE(water_bottom) },
+		{ TERRAIN_WATER_DEEP,   SPRITE(water_deep)   },
 	};
+#undef SPRITE
 	const size_t N = sizeof(TERRAIN_SPRITES) / sizeof(TERRAIN_SPRITES[0]);
 	for (size_t i = 0 ; i < N; ++i) {
 		if (TERRAIN_SPRITES[i].t == t) return TERRAIN_SPRITES[i].s;
@@ -334,8 +389,6 @@ static void reveal_render() {
 	const uint32_t px = session_current()->player.x;
 	const uint32_t py = session_current()->player.y;
 
-	bool can_select = !input_dragging(INPUT_BUTTON_LEFT);
-
 	for (size_t i = 0; i < N; ++i) {
 		const int64_t nx = px + LOOKUP[i].dx;
 		const int64_t ny = py + LOOKUP[i].dy;
@@ -345,10 +398,6 @@ static void reveal_render() {
 			session_current()->world.locations[nx][ny].is_hidden)
 		{
 			render_sprite(assets_sprites()->travel_map.eye_mind, x, y);
-			const int64_t id = ny * WORLD_PLANE_SIZE + nx + 1;
-			if (can_select && imgui_button_invisible(id, x, y, TILE, TILE)) {
-				session_reveal(nx, ny);
-			}
 		}
 	}
 }
@@ -379,17 +428,7 @@ void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 		s_ctx.has_selector = true;
 	}
 
-	if (!s_ctx.is_drawing) {
-		s_ctx.is_drawing = path_can_start_drawing();
-	} else {
-		s_ctx.is_drawing = input_dragging(INPUT_BUTTON_LEFT);
-	}
-	if (!s_ctx.is_drawing) {
-		s_ctx.is_scrolling = input_dragging(INPUT_BUTTON_LEFT);
-		if (s_ctx.is_scrolling) {
-			scroll_update();
-		}
-	}
+	map_view_update();
 
 	if (!session_current()) game_state_switch(GAME_STATE_LOGIN);
 }
@@ -875,10 +914,8 @@ static void compass_render() {
 	const struct sprite_t* s = sprites[lookup_compass_sprite(px, py, cx, cy)];
 	const float x = (SCREEN_SIZE - TILE) * 0.5f;
 	const float y =  SCREEN_SIZE - TILE - TILE * 0.5f;
-	render_sprite(s, x, y);
-
 	// TODO: @robustness Use some constants for ids, unless imgui has a nice id handling.
-	if (imgui_button_invisible(100, x, y, TILE, TILE)) {
+	if (imgui_button(1, s, x, y, TILE, TILE)) {
 		center_on_player();
 	}
 }
