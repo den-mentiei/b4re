@@ -70,34 +70,55 @@ static void path_reset() {
 	s_ctx.num_steps = 0;
 }
 
-static void path_add_step(int32_t tx, int32_t ty) {
-	s_ctx.steps[s_ctx.num_steps].tx    = tx;
-	s_ctx.steps[s_ctx.num_steps].ty    = ty;
-	s_ctx.steps[s_ctx.num_steps].price = 1;
-	++s_ctx.num_steps;
-}
-
-static bool path_try_reset(int32_t tx, int32_t ty) {
+static bool path_reset_to(int32_t tx, int32_t ty) {
 	const int32_t px = session_current()->player.x;
 	const int32_t py = session_current()->player.y;
 	if (tx == px && ty == py) {
-		// TODO: Reset path;
+		path_reset();
 		return true;
 	}
-	/* 	if (_pathSteps.Any() && _pathSteps.ContainsKey(p) && p != _orderedPath.Last()) { */
-	/* 		ResetPathUpTo(p); */
-	/* 		return true; */
-	/* 	} */
+
+	size_t i = 0;
+	while (i < s_ctx.num_steps) {
+		if (s_ctx.steps[i].tx == tx && s_ctx.steps[i].ty == ty) {
+			s_ctx.num_steps = i + 1;
+			return true;
+		}
+		++i;
+	}
+
 	return false;
 }
 
-static bool path_try_step(int32_t tx, int32_t ty) {
-	if (path_try_reset(tx, ty)) {
-		return true;
+static void path_step(int32_t tx, int32_t ty) {
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
+	if (!path_reset_to(tx, ty)) {
+		// TODO: Calculate price, validate it, etc.
+		s_ctx.steps[s_ctx.num_steps].tx    = tx;
+		s_ctx.steps[s_ctx.num_steps].ty    = ty;
+		s_ctx.steps[s_ctx.num_steps].price = 1;
+		++s_ctx.num_steps;
 	}
-	// TODO: Calculate price, validate it, etc.
-	path_add_step(tx, ty);
-	return true;
+}
+
+static void path_step_diagonally(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
+	assert(are_diagonal_only_neighbours(tx0, ty0, tx1, ty1));
+
+	const int32_t dx = tx1 - tx0;
+	// const int32_t dy = ty1 - ty0;
+
+	// Step 1
+	const int32_t through_tx = tx1 - dx;
+	const int32_t through_ty = ty1;
+
+	path_step(through_tx, through_ty);
+	path_step(tx1,        ty1);
+
+	// Step 2
+	/* const int32_t through_tx = tx1; */
+	/* const int32_t through_ty = ty1 - dy; */
+	// TODO:
 }
 
 static void path_input(int32_t tx, int32_t ty) {
@@ -108,11 +129,11 @@ static void path_input(int32_t tx, int32_t ty) {
 	const int32_t sy = s_ctx.num_steps > 0 ? s_ctx.steps[s_ctx.num_steps - 1].ty : py;
 
 	if (are_diagonal_only_neighbours(sx, sy, tx, ty)) {
-		// TODO: Step diagonally.
+		path_step_diagonally(sx, sy, tx, ty);
 	} else if (are_neighbours(sx, sy, tx, ty)) {
-		path_try_step(tx, ty);
-	} else /*if(reset_path?)*/ {
-		// TODO: Reset path at tx,ty.
+		path_step(tx, ty);
+	} else {
+		path_reset_to(tx, ty);
 	}
 }
 
