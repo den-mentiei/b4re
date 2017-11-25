@@ -293,7 +293,7 @@ static void location_input(int32_t tx, int32_t ty, float x, float y) {
 	}
 }
 
-static void render_map_view() {
+static void map_view_render() {
 	const render_text_t DEBUG_TEXT = {
 		.font    = "regular",
 		.size_pt = 16.0f,
@@ -334,7 +334,7 @@ static void render_map_view() {
 	}
 }
 
-static void render_reveal() {
+static void reveal_render() {
 	const struct { int8_t dx; int8_t dy; } LOOKUP[] = {
 		{ -1,  0 },
 		{  1,  0 },
@@ -517,7 +517,7 @@ static void resource_indicator_value_render(const resource_t* res, const indicat
 	render_value_max(res->value, res->max, tx, ty, params);
 }
 
-static void render_coordinates(float x, float y, uint8_t tiles_x, uint8_t tiles_y) {
+static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_y) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_beta, x,         y);
 	render_sprite(assets_sprites()->travel_map.dice_5p_brown,           x + 32.0f, y);
 
@@ -554,7 +554,7 @@ static void render_coordinates(float x, float y, uint8_t tiles_x, uint8_t tiles_
 	x = render_value_with_zeros(dy, x, y, zeros_color, emphasis_color, &text_params);
 }
 
-static void render_resources() {
+static void resources_render() {
 	const indicator_rendering_t mind_rendering = {
 		.zeros_color = render_color(0x0D, 0x27, 0x34),
 		.value_color = render_color(0x00, 0xC8, 0xFF),
@@ -758,7 +758,7 @@ static const struct sprite_t* get_path_point(uint32_t tx, uint32_t ty) {
 	return LOOKUP[0].p;
 }
 
-static void render_movement_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
+static void path_render_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
 	const float ox = VIEW_OFFSET + s_ctx.map_x;
 	const float oy = VIEW_OFFSET + s_ctx.map_y;
 	const float x  = ox + TILE * (tx0 - s_ctx.tile_x);
@@ -769,7 +769,7 @@ static void render_movement_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t
 	render_sprite(arrow.s, x + arrow.dx, y + arrow.dy);
 }
 
-static void render_movement() {
+static void path_render() {
 	if (s_ctx.num_steps == 0) return;
 
 	const render_text_t TEXT = {
@@ -784,7 +784,7 @@ static void render_movement() {
 
 	const int32_t px = session_current()->player.x;
 	const int32_t py = session_current()->player.y;
-	render_movement_arrow(px, py, s_ctx.steps[0].tx, s_ctx.steps[0].ty);
+	path_render_arrow(px, py, s_ctx.steps[0].tx, s_ctx.steps[0].ty);
 
 	for (size_t i = 0; i < s_ctx.num_steps; ++i) {
 		const uint32_t tx0 = s_ctx.steps[i].tx;
@@ -795,7 +795,7 @@ static void render_movement() {
 		if (i != s_ctx.num_steps - 1) {
 			const uint32_t tx1 = s_ctx.steps[i + 1].tx;
 			const uint32_t ty1 = s_ctx.steps[i + 1].ty;
-			render_movement_arrow(tx0, ty0, tx1, ty1);
+			path_render_arrow(tx0, ty0, tx1, ty1);
 		}
 
 		char buf[64];
@@ -806,7 +806,7 @@ static void render_movement() {
 	}
 }
 
-static void render_selector() {
+static void selector_render() {
 	const float SELECTOR_OFFSET = -TILE * 0.5f;
 
 	// TODO: @refactor Move it out into a common converter.
@@ -864,7 +864,7 @@ static uint8_t lookup_compass_sprite(uint32_t px, uint32_t py, uint32_t cx, uint
 	return 0;
 }
 
-static void render_compass() {
+static void compass_render() {
 	const uint32_t px = session_current()->player.x;
 	const uint32_t py = session_current()->player.y;
 	const uint32_t cx = s_ctx.tile_x + VIEW_TILES / 2;
@@ -897,7 +897,7 @@ static void render_compass() {
 	}
 }
 
-static void render_player() {
+static void player_render() {
 	const uint32_t px = session_current()->player.x;
 	const uint32_t py = session_current()->player.y;
 
@@ -914,7 +914,7 @@ static void render_player() {
 	render_sprite(assets_sprites()->avatars.avatar_man2, x, y);
 }
 
-static void render_chrome() {
+static void chrome_render() {
 	render_sprite(assets_sprites()->travel_map.black_map_frame,    0.0f,  0.0f);
 	render_sprite(assets_sprites()->travel_map.atlas_frame,       32.0f, 32.0f);
 
@@ -938,13 +938,13 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	// TODO: Render map view.
 	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);
 
-	render_map_view();
-	render_movement();
-	render_player();
-	render_reveal();
-	render_selector();
-	render_chrome();
-	render_compass();
-	render_resources();
-	render_coordinates(5 * 32.0f, 512.0f - 32.0f - 2.0f, s_ctx.selector_x, s_ctx.selector_y);
+	map_view_render();
+	path_render();
+	player_render();
+	reveal_render();
+	selector_render();
+	chrome_render();
+	compass_render();
+	resources_render();
+	coordinates_render(5 * 32.0f, 512.0f - 32.0f - 2.0f, s_ctx.selector_x, s_ctx.selector_y);
 }
