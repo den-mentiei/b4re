@@ -78,7 +78,7 @@ void session_init(struct allocator_t* alloc) {
 	}
 }
 
-void session_update() {
+void session_update(float dt) {
 	mtx_lock(&s_ctx.lock);
 	memcpy(&s_ctx.current, &s_ctx.synced, sizeof(session_t));
 	mtx_unlock(&s_ctx.lock);

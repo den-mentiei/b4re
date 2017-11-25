@@ -42,7 +42,7 @@ typedef struct {
 struct allocator_t;
 
 void session_init(struct allocator_t* alloc);
-void session_update();
+void session_update(float dt);
 void session_shutdown();
 
 const session_t* session_current();

@@ -8,7 +8,6 @@
 #include "imgui.h"
 #include "render.h"
 #include "render_text.h"
-#include "session.h"
 #include "game.h"
 #include "http.h"
 #include "allocator.h"
@@ -51,7 +50,6 @@ bool entry_init(int32_t argc, const char* argv[]) {
 	render_init();
 	render_text_init();
 	http_init(allocator_main());
-	session_init(allocator_main());
 	imgui_init();
 
 	return game_init(argc, argv);
@@ -63,7 +61,6 @@ bool entry_tick(float dt) {
 	bgfx_dbg_text_clear(0, false);
 	
 	input_update();
-	session_update();
 	imgui_update();
 	bool should_continue = game_update(s_ctx.w, s_ctx.h, dt);
 
@@ -88,7 +85,6 @@ bool entry_tick(float dt) {
 
 void entry_shutdown() {
 	game_shutdown();
-	session_shutdown();
 	http_shutdown();
 	render_text_shutdown();
 	render_shutdown();
