@@ -71,6 +71,23 @@ static bool are_diagonal_only_neighbours(int32_t tx0, int32_t ty0, int32_t tx1, 
 	return is_on_plane(tx0, ty0) && is_on_plane(tx1, ty1) && dx == 1 && dy == 1;
 }
 
+static bool is_tile_dragged(int32_t tx, int32_t ty) {
+	if (input_dragging(INPUT_BUTTON_LEFT)) {
+		const float ox = VIEW_OFFSET + s_ctx.map_x;
+		const float oy = VIEW_OFFSET + s_ctx.map_y;
+		const float x  = ox + TILE * (tx - s_ctx.tile_x);
+		const float y  = oy + TILE * (ty - s_ctx.tile_y);
+
+		float ix, iy;
+		input_position(&ix, &iy);
+
+		if (is_in_rect(x, y, TILE, TILE, ix, iy)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 // PATH MANAGEMENT
 // ===============
 
@@ -156,19 +173,7 @@ static bool path_can_start_drawing() {
 	const int32_t px = session_current()->player.x;
 	const int32_t py = session_current()->player.y;
 	if (s_ctx.selector_x == px && s_ctx.selector_y == py) {
-		if (input_dragging(INPUT_BUTTON_LEFT)) {
-			const float   ox = VIEW_OFFSET + s_ctx.map_x;
-			const float   oy = VIEW_OFFSET + s_ctx.map_y;
-			const float   x  = ox + TILE * (px - s_ctx.tile_x);
-			const float   y  = oy + TILE * (py - s_ctx.tile_y);
-
-			float ix, iy;
-			input_position(&ix, &iy);
-
-			if (is_in_rect(x, y, TILE, TILE, ix, iy)) {
-				return true;
-			}
-		}
+		if (is_tile_dragged(px, py)) return true;
 	}
 	return false;
 }
@@ -269,15 +274,14 @@ static void render_incognitta_shade(size_t tx, size_t ty, float x, float y) {
 }
 
 static void location_input(int32_t tx, int32_t ty, float x, float y) {
-	/* if (path_contains(tx, ty)) { */
-	/* 	path_input(tx, ty); */
-	/* 	return; */
-	/* } */
-
-	const int64_t id = ty * WORLD_PLANE_SIZE + tx + 1;
-	if (imgui_button_invisible(id, x, y, TILE, TILE)) {
-		s_ctx.selector_x = tx;
-		s_ctx.selector_y = ty;
+	if (s_ctx.is_drawing && is_tile_dragged(tx, ty)) {
+		path_input(tx, ty);
+	} else {
+		const int64_t id = ty * WORLD_PLANE_SIZE + tx + 1;
+		if (imgui_button_invisible(id, x, y, TILE, TILE)) {
+			s_ctx.selector_x = tx;
+			s_ctx.selector_y = ty;
+		}
 	}
 }
 
