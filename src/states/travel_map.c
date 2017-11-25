@@ -123,8 +123,6 @@ static bool path_reset_to(int32_t tx, int32_t ty) {
 }
 
 static void path_step(int32_t tx, int32_t ty) {
-	const int32_t px = session_current()->player.x;
-	const int32_t py = session_current()->player.y;
 	if (!path_reset_to(tx, ty)) {
 		// TODO: Calculate price, validate it, etc.
 		s_ctx.steps[s_ctx.num_steps].tx    = tx;

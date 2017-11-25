@@ -9,7 +9,7 @@
 #include "render.h"
 #include "render_text.h"
 #include "game.h"
-#include "http.h"
+#include "http2.h"
 #include "allocator.h"
 #include "log.h"
 
@@ -49,7 +49,7 @@ bool entry_init(int32_t argc, const char* argv[]) {
 
 	render_init();
 	render_text_init();
-	http_init(allocator_main());
+	http2_init();
 	imgui_init();
 
 	return game_init(argc, argv);
@@ -80,12 +80,27 @@ bool entry_tick(float dt) {
 
 	bgfx_frame(false);
 
+	static bool requested;
+	static bool got_response;
+	static uint8_t buf[16 * 1024];
+	static http2_work_id_t id;
+	if (!requested) {
+		id = http2_get("http://google.com", buf, sizeof(buf));
+		requested = true;
+	} else if (!got_response) {
+		size_t got_bytes;
+		if (http2_status(id) == HTTP_STATUS_FINISHED && http2_response_size(id, &got_bytes)) {
+			log_info("!!! FINISHED and got %zu bytes", got_bytes);
+			got_response = true;
+		}
+	}
+
 	return should_continue;
 }
 
 void entry_shutdown() {
 	game_shutdown();
-	http_shutdown();
+	http2_shutdown();
 	render_text_shutdown();
 	render_shutdown();
 	bgfx_shutdown();

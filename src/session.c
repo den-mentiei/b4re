@@ -97,7 +97,7 @@ void session_update(float dt) {
 			
 			// TODO: Do not issue a request if last one was not responded, yet.
 			log_info("[session] Fetching state");
-			http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG);
+			/* http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG); */
 		}
 	}
 }
@@ -121,15 +121,16 @@ void session_start(const char* username, const char* password) {
 		{ "username", username },
 		{ "password", password }
 	};
+	(void)form;
 
-	http_post_form("http://ancientlighthouse.com:8080/api/login", form, sizeof(form) / sizeof(form[0]), http_handler, LOGIN_TAG);
+	/* http_post_form("http://ancientlighthouse.com:8080/api/login", form, sizeof(form) / sizeof(form[0]), http_handler, LOGIN_TAG); */
 }
 
 void session_end() {
 	assert(safe_is_active());
 
 	log_info("[session] Logging out");
-	http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL);
+	/* http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL); */
 
 	// TODO: set it only if logout was successfull.
 	mtx_lock(&s_ctx.lock);
@@ -146,7 +147,7 @@ void session_reveal(uint32_t x, uint32_t y) {
 	log_info("[session] Revealing %u, %u", x, y);
 	char buf[128];
 	snprintf(buf, sizeof(buf), "http://ancientlighthouse.com:8080/api/reveal/%u/%u", x, y);
-	http_get(buf, http_handler, NULL);
+	/* http_get(buf, http_handler, NULL); */
 }
 
 // HTTP RESPONSE HANDLING

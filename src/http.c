@@ -37,7 +37,7 @@ static struct {
 	thrd_t thread;
 
 	pool_t* pending;
-} ctx = {0};
+} ctx;
 
 static void free_easy_handle(CURL* h) {
 	assert(h);
@@ -107,7 +107,7 @@ static int worker(void* arg) {
 static size_t response_write(const char* ptr, size_t size, size_t nmemb, void* userdata) {
 	assert(userdata);
 
-	pending_t*  p      = (pending_t*)userdata;
+	pending_t*  p      = userdata;
 	const size_t bytes = size * nmemb;
 
 	// As it will be zero-terminated.
