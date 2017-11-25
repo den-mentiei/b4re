@@ -15,13 +15,18 @@
 
 #include "api.h"
 
+#define AUTO_UPDATE_INTERVALS_SECONDS 1.0f
+
 static struct {
 	allocator_t* alloc;
 
+	float t;
+
 	session_t current;
 	session_t synced;
-	bool      is_logged_in;
-	bool      is_active;
+
+	bool is_logged_in;
+	bool is_active;
 
 	char username[128];
 	char avatar[128];
@@ -29,12 +34,11 @@ static struct {
 	mtx_t lock;
 } s_ctx;
 
-/// API
-static void login(const char* username, const char* password);
-static void logout();
-static void fetch_state();
-static void reveal(uint32_t x, uint32_t y);
-/// API END
+static char* LOGIN_TAG = "login";
+static char* STATE_TAG = "state";
+static char* MAP_TAG   = "map";
+
+static void http_handler(const uint8_t* data, size_t size, void* payload);
 
 static bool safe_is_logged_in() {
 	mtx_lock(&s_ctx.lock);
@@ -74,6 +78,9 @@ void session_init(struct allocator_t* alloc) {
 			/* 	s_ctx.synced.world.locations[x][y].has_data  = true; */
 			/* 	s_ctx.synced.world.locations[x][y].is_hidden = true; */
 			/* } */
+
+/* 	log_info("[session] Fetching map"); */
+/* 	http_get("http://ancientlighthouse.com:8080/api/map/homeland_3/0/0/12", http_handler, MAP_TAG); */
 		}
 	}
 }
@@ -87,7 +94,8 @@ void session_update(float dt) {
 	if (safe_is_logged_in()) {
 		if (!was_state_fetched) {
 			was_state_fetched = true;
-			fetch_state();
+			log_info("[session] Fetching state");
+			http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG);
 		}
 	} else {
 		was_state_fetched = false;
@@ -104,13 +112,24 @@ const session_t* session_current() {
 
 void session_start(const char* username, const char* password) {
 	assert(!safe_is_active());
-	login(username, password);
+	assert(username);
+	assert(password);
+
+	log_info("[session] Logging in with username=%s", username);
+
+	http_form_part_t form[] = {
+		{ "username", username },
+		{ "password", password }
+	};
+
+	http_post_form("http://ancientlighthouse.com:8080/api/login", form, sizeof(form) / sizeof(form[0]), http_handler, LOGIN_TAG);
 }
 
 void session_end() {
 	assert(safe_is_active());
 
-	logout();
+	log_info("[session] Logging out");
+	http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL);
 
 	// TODO: set it only if logout was successfull.
 	mtx_lock(&s_ctx.lock);
@@ -123,14 +142,15 @@ void session_end() {
 
 void session_reveal(uint32_t x, uint32_t y) {
 	assert(safe_is_active());
-	reveal(x, y);
+
+	log_info("[session] Revealing %u, %u", x, y);
+	char buf[128];
+	snprintf(buf, sizeof(buf), "http://ancientlighthouse.com:8080/api/reveal/%u/%u", x, y);
+	http_get(buf, http_handler, NULL);
 }
 
-/// API stuff
-
-static char* LOGIN_TAG = "login";
-static char* STATE_TAG = "state";
-static char* MAP_TAG   = "map";
+// HTTP RESPONSE HANDLING
+// ======================
 
 static void http_handler(const uint8_t* data, size_t size, void* payload) {
 	if (payload == LOGIN_TAG) {
@@ -160,42 +180,3 @@ static void http_handler(const uint8_t* data, size_t size, void* payload) {
 		log_info("");
 	}
 }
-
-static void login(const char* username, const char* password) {
-	assert(username);
-	assert(password);
-
-	log_info("[session] Logging in with username=%s", username);
-
-	http_form_part_t form[] = {
-		{ "username", username },
-		{ "password", password }
-	};
-
-	http_post_form("http://ancientlighthouse.com:8080/api/login", form, sizeof(form) / sizeof(form[0]), http_handler, LOGIN_TAG);
-}
-
-static void logout() {
-	log_info("[session] Logging out");
-	http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL);
-}
-
-static void fetch_state() {
-	log_info("[session] Fetching state");
-	http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG);
-}
-
-static void reveal(uint32_t x, uint32_t y) {
-	log_info("[session] Revealing %u, %u", x, y);
-	char buf[128];
-	snprintf(buf, sizeof(buf), "http://ancientlighthouse.com:8080/api/reveal/%u/%u", x, y);
-	http_get(buf, http_handler, NULL);
-}
-
-// TODO: Remove it.
-
-void session_foo() {
-	log_info("[session] Fetching map");
-	http_get("http://ancientlighthouse.com:8080/api/map/homeland_3/0/0/12", http_handler, MAP_TAG);
-}
-

@@ -417,12 +417,6 @@ static void center_on_player() {
 void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 	assert(session_current());
 	
-	static bool was_map_requested;
-	if (!was_map_requested) {
-		was_map_requested = true;
-		session_foo();
-	}
-
 	if (!s_ctx.has_selector) {
 		center_on_player();
 		s_ctx.has_selector = true;
