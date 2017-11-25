@@ -41,10 +41,18 @@ static struct {
 	int  selector_x;
 	int  selector_y;
 	bool has_selector;
+
+	bool is_drawing;
+	bool is_scrolling;
 } s_ctx;
 
 // HELPERS
 // =======
+
+static bool is_in_rect(float x, float y, float w, float h, float px, float py) {
+	return px >= x && px < x + w &&
+	       py >= y && py < y + h;
+}
 
 static bool is_on_plane(int32_t tx, int32_t ty) {
 	return tx >= 0 && tx < WORLD_PLANE_SIZE &&
@@ -63,8 +71,15 @@ static bool are_diagonal_only_neighbours(int32_t tx0, int32_t ty0, int32_t tx1, 
 	return is_on_plane(tx0, ty0) && is_on_plane(tx1, ty1) && dx == 1 && dy == 1;
 }
 
-// STEPS MANAGEMENT
-// ================
+// PATH MANAGEMENT
+// ===============
+
+static bool path_contains(int32_t tx, int32_t ty) {
+	for (size_t i = 0; i < s_ctx.num_steps; ++i) {
+		if (s_ctx.steps[i].tx == tx && s_ctx.steps[i].ty == ty) return true;
+	}
+	return false;
+}
 
 static void path_reset() {
 	s_ctx.num_steps = 0;
@@ -137,10 +152,31 @@ static void path_input(int32_t tx, int32_t ty) {
 	}
 }
 
+static bool path_can_start_drawing() {
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
+	if (s_ctx.selector_x == px && s_ctx.selector_y == py) {
+		if (input_dragging(INPUT_BUTTON_LEFT)) {
+			const float   ox = VIEW_OFFSET + s_ctx.map_x;
+			const float   oy = VIEW_OFFSET + s_ctx.map_y;
+			const float   x  = ox + TILE * (px - s_ctx.tile_x);
+			const float   y  = oy + TILE * (py - s_ctx.tile_y);
+
+			float ix, iy;
+			input_position(&ix, &iy);
+
+			if (is_in_rect(x, y, TILE, TILE, ix, iy)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 // SCROLL MANAGEMENT
 // =================
 
-static void update_scroll() {
+static void scroll_update() {
 	float x, y;
 	input_position(&x, &y);
 
@@ -175,7 +211,6 @@ static void update_scroll() {
 		new_x  = -TILE;
 		new_tx = PLANE_TILES - VIEW_TILES_PAD;
 	}
-
 	if (new_ty < 0) {
 		new_y  = 0;
 		new_ty = 0;
@@ -189,6 +224,9 @@ static void update_scroll() {
 	s_ctx.tile_x = new_tx;
 	s_ctx.tile_y = new_ty;
 }
+
+// MAP VIEW RENDERING
+// ==================
 
 static const struct sprite_t* lookup_terrain_sprite(uint8_t t) {
 	const struct { world_terrain_t t; const struct sprite_t* s; } TERRAIN_SPRITES[] = {
@@ -230,6 +268,19 @@ static void render_incognitta_shade(size_t tx, size_t ty, float x, float y) {
 #undef LOOKUP
 }
 
+static void location_input(int32_t tx, int32_t ty, float x, float y) {
+	/* if (path_contains(tx, ty)) { */
+	/* 	path_input(tx, ty); */
+	/* 	return; */
+	/* } */
+
+	const int64_t id = ty * WORLD_PLANE_SIZE + tx + 1;
+	if (imgui_button_invisible(id, x, y, TILE, TILE)) {
+		s_ctx.selector_x = tx;
+		s_ctx.selector_y = ty;
+	}
+}
+
 static void render_map_view() {
 	const render_text_t DEBUG_TEXT = {
 		.font    = "regular",
@@ -238,12 +289,8 @@ static void render_map_view() {
 		.align   = RENDER_TEXT_ALIGN_CENTER | RENDER_TEXT_ALIGN_MIDDLE
 	};
 
-	char buf[64];
-
 	const float ox = VIEW_OFFSET + s_ctx.map_x;
 	const float oy = VIEW_OFFSET + s_ctx.map_y;
-
-	bool can_select = !input_dragging(INPUT_BUTTON_LEFT);
 
 	for (size_t i = 0; i < VIEW_TILES_PAD; ++i) {
 		for (size_t j = 0; j < VIEW_TILES_PAD; ++j) {
@@ -265,23 +312,14 @@ static void render_map_view() {
 				render_tile(lookup_terrain_sprite(loc->terrain), x, y, &test_tile);
 				render_incognitta_shade(tx, ty, x, y);
 
-				if (can_select && imgui_button_invisible(j * VIEW_TILES_PAD + i + 1, x, y, TILE, TILE)) {
-					//s_ctx.selector_x = tx;
-					//s_ctx.selector_y = ty;
-					// TODO: Remove it.
-					path_input(tx, ty);
-				}
+				location_input(tx, ty, x, y);
 			}
 
+			char buf[64];
 			snprintf(buf, 64, "%zu,%zu", tx, ty);
 			render_text(buf, x + TILE * 0.5f, y + TILE * 0.5f, &DEBUG_TEXT);
 		}
 	}
-
-	render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy);
-	render_sprite(assets_sprites()->travel_map.mapnet, ox,          oy + 256.0f);
-	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy);
-	render_sprite(assets_sprites()->travel_map.mapnet, ox + 256.0f, oy + 256.0f);
 }
 
 static void render_reveal() {
@@ -343,13 +381,19 @@ void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
 		s_ctx.has_selector = true;
 	}
 
-	if (input_dragging(INPUT_BUTTON_LEFT)) {
-		update_scroll();
+	if (!s_ctx.is_drawing) {
+		s_ctx.is_drawing = path_can_start_drawing();
+	} else {
+		s_ctx.is_drawing = input_dragging(INPUT_BUTTON_LEFT);
+	}
+	if (!s_ctx.is_drawing) {
+		s_ctx.is_scrolling = input_dragging(INPUT_BUTTON_LEFT);
+		if (s_ctx.is_scrolling) {
+			scroll_update();
+		}
 	}
 
-	if (!session_current()) {
-		game_state_switch(GAME_STATE_LOGIN);
-	}
+	if (!session_current()) game_state_switch(GAME_STATE_LOGIN);
 }
 
 typedef struct {
