@@ -281,18 +281,6 @@ static void render_incognitta_shade(size_t tx, size_t ty, float x, float y) {
 #undef LOOKUP
 }
 
-static void location_input(int32_t tx, int32_t ty, float x, float y) {
-	if (s_ctx.is_drawing && is_tile_dragged(tx, ty)) {
-		path_input(tx, ty);
-	} else {
-		const int64_t id = ty * WORLD_PLANE_SIZE + tx + 1;
-		if (imgui_button_invisible(id, x, y, TILE, TILE)) {
-			s_ctx.selector_x = tx;
-			s_ctx.selector_y = ty;
-		}
-	}
-}
-
 static void map_view_render() {
 	const render_text_t DEBUG_TEXT = {
 		.font    = "regular",
@@ -323,8 +311,6 @@ static void map_view_render() {
 			} else {
 				render_tile(lookup_terrain_sprite(loc->terrain), x, y, &test_tile);
 				render_incognitta_shade(tx, ty, x, y);
-
-				location_input(tx, ty, x, y);
 			}
 
 			char buf[64];
