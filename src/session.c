@@ -11,7 +11,7 @@
 
 #include "allocator.h"
 #include "log.h"
-#include "http2.h"
+#include "http.h"
 
 #include "api.h"
 
@@ -117,7 +117,7 @@ void session_start(const char* username, const char* password) {
 
 	log_info("[session] Logging in with username=%s", username);
 
-	http2_form_part_t form[] = {
+	http_form_part_t form[] = {
 		{ "username", username },
 		{ "password", password }
 	};

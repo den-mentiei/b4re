@@ -1,4 +1,4 @@
-#include "http2.h"
+#include "http.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -32,7 +32,7 @@ typedef struct {
 typedef struct {
 	request_t req;
 
-	http2_work_id_t id;
+	http_work_id_t id;
 	uint8_t   index;
 	uint8_t   next;
 } work_t;
@@ -201,14 +201,14 @@ static void work_init(work_table_t* ctx) {
 	ctx->enqueue = REQUESTS_MAX_IN_FLIGHT - 1;
 }
 
-static bool work_has(work_table_t* ctx, http2_work_id_t id) {
+static bool work_has(work_table_t* ctx, http_work_id_t id) {
 	assert(ctx);
 
 	work_t* item = &ctx->items[id & REQUESTS_INDEX_MASK];
 	return item->id == id && item->index != UINT8_MAX;
 }
 
-static work_t* work_lookup(work_table_t* ctx, http2_work_id_t id) {
+static work_t* work_lookup(work_table_t* ctx, http_work_id_t id) {
 	assert(ctx);
 	assert(work_has(ctx, id));
 
@@ -220,7 +220,7 @@ static bool work_can_add(work_table_t* ctx) {
 	return ctx->dequeue != REQUESTS_MAX_IN_FLIGHT;
 }
 
-static http2_work_id_t work_add(work_table_t* ctx) {
+static http_work_id_t work_add(work_table_t* ctx) {
 	assert(ctx);
 
 	if (!work_can_add(ctx)) return 0;
@@ -233,7 +233,7 @@ static http2_work_id_t work_add(work_table_t* ctx) {
 	return item->id;
 }
 
-static void work_remove(work_table_t* ctx, http2_work_id_t id) {
+static void work_remove(work_table_t* ctx, http_work_id_t id) {
 	assert(ctx);
 	assert(work_has(ctx, id));
 
@@ -263,12 +263,12 @@ static void requests_shutdown() {
 	}
 }
 
-static http2_work_id_t requests_add(void* buffer, size_t size) {
+static http_work_id_t requests_add(void* buffer, size_t size) {
 	assert(buffer);
 	assert(size > 0);
 	assert(work_can_add(&s_ctx.work));
 
-	http2_work_id_t id  = work_add(&s_ctx.work);
+	http_work_id_t id  = work_add(&s_ctx.work);
 	request_t*      req = &work_lookup(&s_ctx.work, id)->req;
 	
 	req->status = HTTP_STATUS_IN_PROGRESS;
@@ -282,7 +282,7 @@ static http2_work_id_t requests_add(void* buffer, size_t size) {
 // PUBLIC API
 // ==========
 
-void http2_init() {
+void http_init() {
 	assert(!s_ctx.multi);
 
 	if (mtx_init(&s_ctx.multi_lock, mtx_plain) != thrd_success) log_fatal("[http] Failed to create mutex");
@@ -312,7 +312,7 @@ void http2_init() {
 #endif
 }
 
-void http2_shutdown() {
+void http_shutdown() {
 	assert(s_ctx.multi);
 
 	mtx_lock(&s_ctx.multi_lock);
@@ -332,12 +332,12 @@ void http2_shutdown() {
 	curl_global_cleanup();
 }
 
-http2_work_id_t http2_get(const char* url, void* buffer, size_t size) {
+http_work_id_t http_get(const char* url, void* buffer, size_t size) {
 	assert(url);
 	
 	if (!work_can_add(&s_ctx.work)) return 0;
 
-	http2_work_id_t id = requests_add(buffer, size);
+	http_work_id_t id = requests_add(buffer, size);
 	CURL*           h  = work_lookup(&s_ctx.work, id)->req.h;
 
 	curl_easy_setopt(h, CURLOPT_URL, url);
@@ -348,14 +348,14 @@ http2_work_id_t http2_get(const char* url, void* buffer, size_t size) {
 	return id;
 }
 
-http2_work_id_t http2_post_form(const char* url, const http2_form_part_t* parts, size_t count, void* buffer, size_t size) {
+http_work_id_t http_post_form(const char* url, const http_form_part_t* parts, size_t count, void* buffer, size_t size) {
 	assert(url);
 	assert(buffer);
 	assert(size > 0);
 
 	if (!work_can_add(&s_ctx.work)) return 0;
 
-	http2_work_id_t id  = requests_add(buffer, size);
+	http_work_id_t id  = requests_add(buffer, size);
 	request_t*      req = &work_lookup(&s_ctx.work, id)->req;
 	CURL*           h   = req->h;
 
@@ -384,20 +384,20 @@ http2_work_id_t http2_post_form(const char* url, const http2_form_part_t* parts,
 	return id;
 }
 
-http2_work_id_t http2_post(const char* url, void* buffer, size_t size) {
-	return http2_post_form(url, NULL, 0, buffer, size);
+http_work_id_t http_post(const char* url, void* buffer, size_t size) {
+	return http_post_form(url, NULL, 0, buffer, size);
 }
 
 // TODO: SYNCHRONIZATION IS LACKING NOW, CAN BE TOTALLY BROKEN.
 
-http2_status_t http2_status(http2_work_id_t id) {
+http_status_t http_status(http_work_id_t id) {
 	if (work_has(&s_ctx.work, id)) {		
 		return work_lookup(&s_ctx.work, id)->req.status;
 	}
 	return HTTP_STATUS_UNKNOWN;
 }
 
-bool http2_response_code(http2_work_id_t id, uint8_t* code) {
+bool http_response_code(http_work_id_t id, uint8_t* code) {
 	assert(code);
 
 	if (!work_has(&s_ctx.work, id)) return false;
@@ -410,7 +410,7 @@ bool http2_response_code(http2_work_id_t id, uint8_t* code) {
 	return true;
 }
 
-bool http2_response_size(http2_work_id_t id, size_t* size) {
+bool http_response_size(http_work_id_t id, size_t* size) {
 	assert(size);
 
 	if (!work_has(&s_ctx.work, id)) return false;
