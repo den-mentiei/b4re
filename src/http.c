@@ -9,13 +9,10 @@
 
 #include "log.h"
 
-// Count must be a power-of-two.
+// Must be a power-of-two.
 #define REQUESTS_MAX_IN_FLIGHT 64
 #define REQUESTS_INDEX_MASK    (REQUESTS_MAX_IN_FLIGHT - 1)
 #define REQUESTS_ID_ADD        REQUESTS_MAX_IN_FLIGHT
-
-// CONTEXT
-// =======
 
 typedef struct {
 	CURL*      h;
