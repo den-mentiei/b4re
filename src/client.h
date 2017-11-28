@@ -34,3 +34,11 @@ typedef struct {
 } command_login_t;
 
 bool commands_add(const command_header_t* cmd);
+// or
+bool commands_create(command_header_t** cmd, size_t size);
+void commands_commit();
+// or
+void client_login(const char* username, const char* password);
+void client_logout();
+void client_state();
+void client_move(uint8_t* coords, size_t count);

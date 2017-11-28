@@ -69,3 +69,26 @@ bool commands_add(const command_header_t* cmd) {
 
 	return false;
 }
+
+bool commands_create(command_header_t** cmd, size_t size) {
+	assert(cmd);
+	assert(size > 0); // TODO: 0 is ok for payload-less commands.
+
+	return false;
+}
+
+void commands_commit() {}
+
+void client_login(const char* username, const char* password) {
+	assert(username);
+	assert(password);
+}
+
+void client_logout() {}
+
+void client_state() {}
+
+void client_move(uint8_t* coords, size_t count) {
+	assert(coords);
+	assert(count > 0);
+}
