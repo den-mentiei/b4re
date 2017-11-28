@@ -5,6 +5,8 @@
 #include <assert.h>
 
 // TODO: Free-list of messages. Ring-buffer should contain a pointer to message.
+// TODO: Store buffers just after ring-buffer to make it generic.
+// TODO: Last member as items[].
 
 // Must be a power-of-two.
 #define MAX_MESSAGES  16
@@ -54,8 +56,16 @@ bool messages_get(message_t** msg) {
 
 	if (messages_empty()) return false;
 	
-	// TODO:
-	*msg = NULL;
-	messages_pop();
+	*msg = &s_ctx.messages.items[s_ctx.messages.read];
 	return true;
+}
+
+void messages_consume() {
+	assert(!messages_empty());
+}
+
+bool commands_add(const command_header_t* cmd) {
+	assert(cmd);
+
+	return false;
 }
