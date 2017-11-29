@@ -5,8 +5,11 @@
 #include <stdbool.h>
 
 typedef enum {
+	MESSAGE_TYPE_LOGIN,
+	MESSAGE_TYPE_LOGOUT,
 	MESSAGE_TYPE_STATE,
-	MESSAGE_TYPE_MAP
+	MESSAGE_TYPE_MAP,
+	MESSAGE_TYPE_REVEAL
 } message_type_t;
 
 typedef struct {
@@ -22,6 +25,8 @@ void client_login(const char* username, const char* password);
 void client_logout();
 void client_state();
 void client_move(uint8_t* coords, size_t count);
+void client_map(uint32_t x, uint32_t y, uint8_t size);
+void client_reveal(uint32_t x, uint32_t y);
 
 bool client_messages_peek(message_t** msg);
 void client_messages_consume();

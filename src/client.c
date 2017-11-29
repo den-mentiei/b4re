@@ -1,11 +1,10 @@
 #include "client.h"
 
 #include <stddef.h>
-
-#include <stdio.h>
-
 #include <assert.h>
+#include <stdio.h>  // snprintf
 
+#include "log.h"
 #include "http.h"
 
 #define RESPONSE_BUFFER_SIZE (8 * 1024)
@@ -84,6 +83,11 @@ static void pages_update() {
 
 		// TODO: Handle unknown status by dropping it (can issue a message though).
 		if (http_status(p->request_id) == HTTP_STATUS_FINISHED) {
+			size_t bytes;
+			if (http_response_size(p->request_id, &bytes)) {
+				log_info("[client] Got a response (%zu bytes).");
+			}
+
 			// TODO: Handle the response and issue a message.
 
 			pages[i] = pages[n - 1];
@@ -162,16 +166,18 @@ void client_login(const char* username, const char* password) {
 	assert(username);
 	assert(password);
 
+	log_info("[client] Logging in with username=%s", username);
+
 	// TODO: Copy it.
 	http_form_part_t form[] = {
 		{ "username", username },
 		{ "password", password }
 	};
 
-	;
 	page_t* p = pages_alloc();
 
-	p->request_id = http_post_form(
+	p->response_type = MESSAGE_TYPE_LOGIN;
+	p->request_id    = http_post_form(
 		"http://ancientlighthouse.com:8080/api/login",
 		form,
 		sizeof(form) / sizeof(form[0]),
@@ -181,11 +187,30 @@ void client_login(const char* username, const char* password) {
 	pages_put_in_work(p);
 }
 
-void client_logout() {}
+void client_logout() {
+	log_info("[client] Logging out");
+	/* http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL); */
+}
 
-void client_state() {}
+void client_state() {
+	log_info("[client] Fetching state");
+	/* http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG); */
+}
 
 void client_move(uint8_t* coords, size_t count) {
 	assert(coords);
 	assert(count > 0);
+}
+
+void client_map(uint32_t x, uint32_t y, uint8_t size) {
+	assert(size > 0);
+	log_info("[client] Fetching map");
+/* 	http_get("http://ancientlighthouse.com:8080/api/map/homeland_3/0/0/12", http_handler, MAP_TAG); */
+}
+
+void client_reveal(uint32_t x, uint32_t y) {
+	log_info("[client] Revealing %u, %u", x, y);
+	char buf[128];
+	snprintf(buf, sizeof(buf), "http://ancientlighthouse.com:8080/api/reveal/%u/%u", x, y);
+	/* http_get(buf, http_handler, NULL); */
 }

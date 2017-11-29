@@ -11,7 +11,6 @@
 
 #include "allocator.h"
 #include "log.h"
-#include "http.h"
 
 #include "client.h"
 
@@ -35,12 +34,6 @@ static struct {
 
 	mtx_t lock;
 } s_ctx;
-
-static char* LOGIN_TAG = "login";
-static char* STATE_TAG = "state";
-static char* MAP_TAG   = "map";
-
-static void http_handler(const uint8_t* data, size_t size, void* payload);
 
 static bool safe_is_logged_in() {
 	mtx_lock(&s_ctx.lock);
@@ -80,26 +73,16 @@ void session_init(struct allocator_t* alloc) {
 			/* 	s_ctx.synced.world.locations[x][y].has_data  = true; */
 			/* 	s_ctx.synced.world.locations[x][y].is_hidden = true; */
 			/* } */
-
-/* 	log_info("[session] Fetching map"); */
-/* 	http_get("http://ancientlighthouse.com:8080/api/map/homeland_3/0/0/12", http_handler, MAP_TAG); */
 		}
 	}
 }
 
 void session_update(float dt) {
-	mtx_lock(&s_ctx.lock);
-	memcpy(&s_ctx.current, &s_ctx.synced, sizeof(session_t));
-	mtx_unlock(&s_ctx.lock);
-
 	if (safe_is_logged_in()) {
 		s_ctx.t -= dt;
 		if (s_ctx.t < 0.0f) {
 			s_ctx.t = AUTO_UPDATE_INTERVALS_MS;
-			
-			// TODO: Do not issue a request if last one was not responded, yet.
-			log_info("[session] Fetching state");
-			/* http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG); */
+			client_state();
 		}
 	}
 }
@@ -114,66 +97,15 @@ const session_t* session_current() {
 
 void session_start(const char* username, const char* password) {
 	assert(!safe_is_active());
-	assert(username);
-	assert(password);
-
-	log_info("[session] Logging in with username=%s", username);
-
 	client_login(username, password);
 }
 
 void session_end() {
 	assert(safe_is_active());
-
-	log_info("[session] Logging out");
-	/* http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL); */
-
-	// TODO: set it only if logout was successfull.
-	mtx_lock(&s_ctx.lock);
-	s_ctx.is_active = false;
-	memset(&s_ctx.synced,  0, sizeof(session_t));
-	mtx_unlock(&s_ctx.lock);
-
-	memset(&s_ctx.current, 0, sizeof(session_t));
+	client_logout();
 }
 
 void session_reveal(uint32_t x, uint32_t y) {
 	assert(safe_is_active());
-
-	log_info("[session] Revealing %u, %u", x, y);
-	char buf[128];
-	snprintf(buf, sizeof(buf), "http://ancientlighthouse.com:8080/api/reveal/%u/%u", x, y);
-	/* http_get(buf, http_handler, NULL); */
-}
-
-// HTTP RESPONSE HANDLING
-// ======================
-
-static void http_handler(const uint8_t* data, size_t size, void* payload) {
-	if (payload == LOGIN_TAG) {
-		mtx_lock(&s_ctx.lock);
-			s_ctx.is_logged_in = true;
-		mtx_unlock(&s_ctx.lock);
-	} else if (payload == STATE_TAG) {
-		api_state_t state;
-		bool parsed = api_parse_state(s_ctx.alloc, (const char*)data, &state);
-		assert(parsed);
-
-		mtx_lock(&s_ctx.lock);
-			// TODO: Copy field by field or re-use parsed state.
-			memcpy(&s_ctx.synced.player.mind,   &state.player.mind,   sizeof(resource_t));
-			memcpy(&s_ctx.synced.player.matter, &state.player.matter, sizeof(resource_t));
-			s_ctx.synced.player.x   = state.player.x;
-			s_ctx.synced.player.y   = state.player.y;
-			s_ctx.synced.player.exp = state.player.exp;
-			s_ctx.is_active         = true;
-		mtx_unlock(&s_ctx.lock);
-	} else if (payload == MAP_TAG) {
-		api_map_t map;
-		bool parsed = api_parse_map(s_ctx.alloc, (const char*)data, &map);
-		assert(parsed);
-	} else {
-		log_info((const char*)data);
-		log_info("");
-	}
+	client_reveal(x, y);
 }
