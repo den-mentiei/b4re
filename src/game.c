@@ -6,6 +6,7 @@
 #include "render_text.h"
 #include "allocator.h"
 
+#include "client.h"
 #include "session.h"
 #include "states/login.h"
 #include "states/loading.h"
@@ -20,6 +21,7 @@ static struct {
 
 bool game_init(int32_t argc, const char* argv[]) {
 	assets_init();
+	client_init();
 	session_init(allocator_main());
 
 	render_load_font("regular", "assets/fonts/Ancient_Lighthouse_Regular.otf");
@@ -31,6 +33,7 @@ bool game_init(int32_t argc, const char* argv[]) {
 }
 
 bool game_update(uint16_t width, uint16_t height, float dt) {
+	client_update(dt);
 	session_update(dt);
 
 	s_ctx.state = s_ctx.next_state;
@@ -67,6 +70,7 @@ void game_render(uint16_t width, uint16_t height, float dt) {
 
 void game_shutdown() {
 	session_shutdown();
+	client_shutdown();
 	assets_shutdown();
 }
 

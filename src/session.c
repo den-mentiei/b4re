@@ -13,6 +13,8 @@
 #include "log.h"
 #include "http.h"
 
+#include "client.h"
+
 #include "api.h"
 
 #define AUTO_UPDATE_INTERVALS_MS 1000.0f
@@ -117,13 +119,7 @@ void session_start(const char* username, const char* password) {
 
 	log_info("[session] Logging in with username=%s", username);
 
-	http_form_part_t form[] = {
-		{ "username", username },
-		{ "password", password }
-	};
-	(void)form;
-
-	/* http_post_form("http://ancientlighthouse.com:8080/api/login", form, sizeof(form) / sizeof(form[0]), http_handler, LOGIN_TAG); */
+	client_login(username, password);
 }
 
 void session_end() {
