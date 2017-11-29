@@ -80,21 +80,6 @@ bool entry_tick(float dt) {
 
 	bgfx_frame(false);
 
-	static bool requested;
-	static bool got_response;
-	static uint8_t buf[16 * 1024];
-	static http_work_id_t id;
-	if (!requested) {
-		id = http_get("http://google.com", buf, sizeof(buf));
-		requested = true;
-	} else if (!got_response) {
-		size_t got_bytes;
-		if (http_status(id) == HTTP_STATUS_FINISHED && http_response_size(id, &got_bytes)) {
-			log_info("!!! FINISHED and got %zu bytes", got_bytes);
-			got_response = true;
-		}
-	}
-
 	return should_continue;
 }
 
