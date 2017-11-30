@@ -155,7 +155,7 @@ void json_free(json_t* json) {
 	BR_FREE(json->alloc, json);
 }
 
-json_iterator_t json_get_object_property(const json_t* json, json_iterator_t object, const char* key) {
+json_iterator_t json_property(const json_t* json, json_iterator_t object, const char* key) {
 	assert(json);
 	assert(object < json->num_tokens);
 	assert(key);
@@ -182,7 +182,34 @@ json_iterator_t json_get_object_property(const json_t* json, json_iterator_t obj
 	return object;
 }
 
-json_iterator_t json_get_array_value(const json_t* json, json_iterator_t array, size_t i) {
+bool json_has_property(const struct json_t* json, json_iterator_t object, const char* key) {
+	assert(json);
+	assert(object < json->num_tokens);
+	assert(key);
+
+	const jsmntok_t* root = &json->tokens[object];
+	assert(root->type == JSMN_OBJECT);
+
+	const size_t key_length = strlen(key);
+	const size_t left       = json->num_tokens - (root - json->tokens);
+
+	size_t j = 0;
+	for (size_t i = 0; i < root->size; ++i) {
+		const jsmntok_t* kt = root + 1 + j;
+		assert(kt->type == JSMN_STRING);
+
+		const size_t value_length = kt->end - kt->start;
+		if (value_length == key_length && strncmp(json->data + kt->start, key, key_length) == 0) {
+			return true;
+		} else {
+			j += 1 + skip(json->data, kt + 1, left - j);
+		}
+	}
+
+	return false;
+}
+
+json_iterator_t json_array_value(const json_t* json, json_iterator_t array, size_t i) {
 	assert(json);
 	assert(array < json->num_tokens);
 
@@ -201,7 +228,7 @@ json_iterator_t json_get_array_value(const json_t* json, json_iterator_t array, 
 	return array + 1 + k;
 }
 
-size_t json_get_array_size(const json_t* json, const json_iterator_t array) {
+size_t json_array_size(const json_t* json, const json_iterator_t array) {
 	assert(json);
 	assert(array < json->num_tokens);
 
@@ -211,7 +238,7 @@ size_t json_get_array_size(const json_t* json, const json_iterator_t array) {
 	return root->size;
 }
 
-void json_get_string(const json_t* json, json_iterator_t value, char* buffer, size_t size) {
+void json_string(const json_t* json, json_iterator_t value, char* buffer, size_t size) {
 	assert(json);
 	assert(value < json->num_tokens);
 	assert(buffer);
@@ -226,10 +253,10 @@ void json_get_string(const json_t* json, json_iterator_t value, char* buffer, si
 	buffer[copy_length] = 0;
 }
 
-uint64_t json_get_number(const json_t* json, json_iterator_t value) {
+uint64_t json_number(const json_t* json, json_iterator_t value) {
 	return parse_number_u64(json->data, &json->tokens[value]);
 }
 
-bool json_get_bool(const json_t* json, json_iterator_t value) {
+bool json_bool(const json_t* json, json_iterator_t value) {
 	return parse_bool(json->data, &json->tokens[value]);
 }
