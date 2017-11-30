@@ -7,42 +7,44 @@
 #include "json.h"
 #include "world.h"
 
-static void parse_resource(const struct json_t* json, const json_iterator_t object, api_state_resource_t* res) {
+static void parse_resource(const struct json_t* json, json_iterator_t object, api_state_resource_t* res) {
 	assert(json);
-	assert(object);
 	assert(res);
 
-	/* res->last_update     = json_get_object_number(json, object, "last_update"); */
-	/* res->booster_time    = json_get_object_number(json, object, "booster_time"); */
-	/* res->value           = json_get_object_number(json, object, "value"); */
-	/* res->max             = json_get_object_number(json, object, "max"); */
-	/* res->regen_rate      = json_get_object_number(json, object, "regen_rate"); */
-	/* res->filled_segments = json_get_object_number(json, object, "filled_segments"); */
-	/* res->segment_time    = json_get_object_number(json, object, "segment_time"); */
+#define NUMBER_PROPERTY(s) json_get_number(json, json_get_object_property(json, object, (s)))
+	res->last_update     = NUMBER_PROPERTY("last_update");
+	res->booster_time    = NUMBER_PROPERTY("booster_time");
+	res->value           = NUMBER_PROPERTY("value");
+	res->max             = NUMBER_PROPERTY("max");
+	res->regen_rate      = NUMBER_PROPERTY("regen_rate");
+	res->filled_segments = NUMBER_PROPERTY("filled_segments");
+	res->segment_time    = NUMBER_PROPERTY("segment_time");
+#undef NUMBER_PROPERTY
 }
 
 static void parse_player(const struct json_t* json, const json_iterator_t object, api_state_player_t* player) {
 	assert(json);
-	/* assert(object && object->type == JSMN_OBJECT); */
 	assert(player);
 
-	/* get_object_string(json, object, "username", &player->username[0], MAX_API_STRING_LENGTH); */
-	/* get_object_string(json, object, "avatar",   &player->avatar[0],   MAX_API_STRING_LENGTH); */
-	/* get_object_string(json, object, "plane_id", &player->plane_id[0], MAX_API_STRING_LENGTH); */
+#define STRING_PROPERTY(s, f) json_get_string(json, json_get_object_property(json, object, (s)), (f), MAX_API_STRING_LENGTH);
+	STRING_PROPERTY("username", &player->username[0]);
+	STRING_PROPERTY("avatar",   &player->avatar[0]);
+	STRING_PROPERTY("plane_id", &player->plane_id[0]);
+#undef STRING_PROPERTY
 
-	/* player->level = json_get_object_number(json, object, "level"); */
-	/* player->exp   = json_get_object_number(json, object, "experience"); */
-	/* player->money = json_get_object_number(json, object, "money"); */
-	/* player->x     = json_get_object_number(json, object, "x"); */
-	/* player->y     = json_get_object_number(json, object, "y"); */
+#define NUMBER_PROPERTY(s) json_get_number(json, json_get_object_property(json, object, (s)))
+	player->level = NUMBER_PROPERTY("level");
+	player->exp   = NUMBER_PROPERTY("experience");
+	player->money = NUMBER_PROPERTY("money");
+	player->x     = NUMBER_PROPERTY("x");
+	player->y     = NUMBER_PROPERTY("y");
+#undef NUMBER_PROPERTY
 
-	/* const json_iterator_t mind   = json_get_value(json, object, "mind"); */
-	/* const json_iterator_t matter = json_get_value(json, object, "matter"); */
-	/* assert(mind); */
-	/* assert(matter); */
+	const json_iterator_t mind   = json_get_object_property(json, object, "mind");
+	const json_iterator_t matter = json_get_object_property(json, object, "matter");
 
-	/* parse_resource(json,   mind, &player->mind); */
-	/* parse_resource(json, matter, &player->matter); */
+	parse_resource(json, mind,   &player->mind);
+	parse_resource(json, matter, &player->matter);
 }
 
 bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* state) {
@@ -50,18 +52,16 @@ bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* s
 	assert(data);
 	assert(state);
 
-	/* json_t* json = json_parse(alloc, data); */
-	/* if (!json) return false; */
+	struct json_t* json = json_parse(alloc, data);
+	if (!json) return false;
 
-	/* state->timestamp = json_get_object_number(json, 0, "timestamp"); */
+	state->timestamp = json_get_number(json, json_get_object_property(json, 0, "timestamp"));
 
-	/* const json_iterator_t player = json_get_value(json, 0, "player"); */
-	/* assert(player); */
-	/* parse_player(json, player, &state->player); */
+	const json_iterator_t player = json_get_object_property(json, 0, "player");
+	parse_player(json, player, &state->player);
 
-	/* json_free(json); */
-	/* return true; */
-	return false;
+	json_free(json);
+	return true;
 }
 
 static const struct {
