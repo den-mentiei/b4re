@@ -14,6 +14,10 @@
 #define ITEMS_MASK (MAX_PAGES - 1)
 
 typedef struct {
+#ifdef DEBUG
+	const char* tag;
+#endif
+
 	http_work_id_t request_id;
 
 	uint8_t index;
@@ -39,6 +43,36 @@ static struct {
 	page_t* pages_in_work[MAX_PAGES];
 	uint8_t num_pages_in_work;
 } s_ctx;
+
+// RESPONSE -> MESSAGE
+// ===================
+
+typedef void (*handler_t)();
+
+void handle_noop() {}
+void handle_login() {}
+void handle_logout() {}
+void handle_state() {}
+void handle_map() {}
+void handle_reveal() {}
+
+static const struct { uint8_t t; handler_t h; }
+HANDLERS[] = {
+	{ MESSAGE_TYPE_NOOP,   handle_noop   },
+	{ MESSAGE_TYPE_LOGIN,  handle_login  },
+	{ MESSAGE_TYPE_LOGOUT, handle_logout },
+	{ MESSAGE_TYPE_STATE,  handle_state  },
+	{ MESSAGE_TYPE_MAP,    handle_map    },
+	{ MESSAGE_TYPE_REVEAL, handle_reveal }
+};
+static const size_t NUM_HANDLERS = sizeof(HANDLERS) / sizeof(HANDLERS[0]);
+
+static handler_t handlers_lookup(uint8_t type) {
+	for (size_t i = 0; i < NUM_HANDLERS; ++i) {
+		if (HANDLERS[i].t == type) return HANDLERS[i].h;
+	}
+	return HANDLERS[0].h;
+}
 
 // PAGES MANAGEMENT
 // ================
@@ -72,24 +106,42 @@ static void pages_put_in_work(page_t* p) {
 	s_ctx.pages_in_work[s_ctx.num_pages_in_work++] = p;
 }
 
+static void pages_handle_response(page_t* p) {
+	assert(p);
+
+#ifdef DEBUG
+	log_info("[client] Got a response for \"%s\"", p->tag);
+#endif
+
+	uint8_t code;
+	if (http_response_code(p->request_id, &code)) {
+		log_info("[client] Got a response code %u", code);
+		size_t bytes;
+		if (http_response_size(p->request_id, &bytes)) {
+			log_info("[client] Got a response %zu bytes:", bytes);
+			log_info("[client] %s", p->response_buffer);
+
+			handler_t h = handlers_lookup(p->response_type);
+			h();
+
+			// TODO: Free a page?
+		}
+	}
+}
+
 static void pages_update() {
-	page_t** pages = s_ctx.pages_in_work;
+	page_t** pages_in_work = s_ctx.pages_in_work;
 
 	size_t i = 0;
 	size_t n = s_ctx.num_pages_in_work;
 
 	while (i < n) {
-		page_t* p = pages[i];
+		page_t* p = pages_in_work[i];
 
 		// TODO: Handle unknown status by dropping it (can issue a message though).
 		if (http_status(p->request_id) == HTTP_STATUS_FINISHED) {
-			size_t bytes;
-			if (http_response_size(p->request_id, &bytes)) {
-				log_info("[client] Got a response (%zu bytes).");
-				// TODO: Handle the response and issue a message. Or free it directly.
-			}
-
-			pages[i] = pages[n - 1];
+			pages_handle_response(p);
+			pages_in_work[i] = pages_in_work[n - 1];
 			--n;
 		} else {
 			++i;
@@ -174,6 +226,10 @@ void client_login(const char* username, const char* password) {
 	};
 
 	page_t* p = pages_alloc();
+
+#ifdef DEBUG
+	p->tag = "login";
+#endif
 
 	p->response_type = MESSAGE_TYPE_LOGIN;
 	p->request_id    = http_post_form(

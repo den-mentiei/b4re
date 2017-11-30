@@ -5,6 +5,7 @@
 #include <stdbool.h>
 
 typedef enum {
+	MESSAGE_TYPE_NOOP,
 	MESSAGE_TYPE_LOGIN,
 	MESSAGE_TYPE_LOGOUT,
 	MESSAGE_TYPE_STATE,
