@@ -78,6 +78,34 @@ void session_init(struct allocator_t* alloc) {
 }
 
 void session_update(float dt) {
+	message_t* msg;
+	while (client_messages_peek(&msg)) {
+		log_info("[session] Got a message!");
+		switch (msg->type) {
+			case MESSAGE_TYPE_NOOP:
+				break;
+
+			case MESSAGE_TYPE_LOGIN:
+				s_ctx.is_logged_in = true;
+				break;
+
+			/* case MESSAGE_TYPE_LOGOUT: */
+			/* 	break; */
+
+			/* case MESSAGE_TYPE_STATE: */
+			/* 	break; */
+
+			/* case MESSAGE_TYPE_MAP: */
+			/* 	break; */
+
+			/* case MESSAGE_TYPE_REVEAL: */
+			/* 	break; */
+
+			default: log_fatal("[session] Got an unknown message!");
+		}
+		client_messages_consume();
+	}
+
 	if (safe_is_logged_in()) {
 		s_ctx.t -= dt;
 		if (s_ctx.t < 0.0f) {

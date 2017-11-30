@@ -47,14 +47,38 @@ static struct {
 // RESPONSE -> MESSAGE
 // ===================
 
-typedef void (*handler_t)();
+typedef void (*handler_t)(const void* response, void* out_msg);
 
-void handle_noop() {}
-void handle_login() {}
-void handle_logout() {}
-void handle_state() {}
-void handle_map() {}
-void handle_reveal() {}
+void handle_noop(const void* response, void* out_msg) {
+	assert(response);
+	assert(out_msg);
+}
+
+void handle_login(const void* response, void* out_msg) {
+	assert(response);
+	assert(out_msg);
+	// TODO: Nothing, I guess.
+}
+
+void handle_logout(const void* response, void* out_msg) {
+	assert(response);
+	assert(out_msg);
+}
+
+void handle_state(const void* response, void* out_msg) {
+	assert(response);
+	assert(out_msg);
+}
+
+void handle_map(const void* response, void* out_msg) {
+	assert(response);
+	assert(out_msg);
+}
+
+void handle_reveal(const void* response, void* out_msg) {
+	assert(response);
+	assert(out_msg);
+}
 
 static const struct { uint8_t t; handler_t h; }
 HANDLERS[] = {
@@ -72,6 +96,40 @@ static handler_t handlers_lookup(uint8_t type) {
 		if (HANDLERS[i].t == type) return HANDLERS[i].h;
 	}
 	return HANDLERS[0].h;
+}
+
+// MESSAGES MANAGEMENT
+// ===================
+
+static size_t messages_size() {
+	return s_ctx.messages.write - s_ctx.messages.read;
+}
+
+static bool messages_full() {
+	return messages_size() == MAX_PAGES;
+}
+
+static bool messages_empty() {
+	return s_ctx.messages.read == s_ctx.messages.write;
+}
+
+static void messages_push(page_t* p) {
+	assert(!messages_full());
+	assert(p);
+
+	const uint32_t i = s_ctx.messages.write++;
+	s_ctx.messages.items[i & ITEMS_MASK] = p;
+}
+
+static page_t* messages_peek() {
+	assert(!messages_empty());
+	const uint32_t i = s_ctx.messages.read;
+	return s_ctx.messages.items[i & ITEMS_MASK];
+}
+
+static void messages_consume() {
+	assert(!messages_empty());
+	++s_ctx.messages.read;
 }
 
 // PAGES MANAGEMENT
@@ -121,10 +179,13 @@ static void pages_handle_response(page_t* p) {
 			log_info("[client] Got a response %zu bytes:", bytes);
 			log_info("[client] %s", p->response_buffer);
 
-			handler_t h = handlers_lookup(p->response_type);
-			h();
+			message_t* m = (message_t*)p->response_message;
+			m->type = p->response_type;
 
-			// TODO: Free a page?
+			handler_t h = handlers_lookup(p->response_type);
+			h(p->response_buffer, m->data);
+
+			messages_push(p);
 		}
 	}
 }
@@ -149,40 +210,6 @@ static void pages_update() {
 	}
 
 	s_ctx.num_pages_in_work = n;
-}
-
-// MESSAGES MANAGEMENT
-// ===================
-
-static size_t messages_size() {
-	return s_ctx.messages.write - s_ctx.messages.read;
-}
-
-static bool messages_full() {
-	return messages_size() == MAX_PAGES;
-}
-
-static bool messages_empty() {
-	return s_ctx.messages.read == s_ctx.messages.write;
-}
-
-static void messages_push(page_t* p) {
-	assert(!messages_full());
-	assert(p);
-
-	const uint32_t i = s_ctx.messages.write++;
-	s_ctx.messages.items[i & ITEMS_MASK] = p;
-}
-
-static page_t* messages_peek() {
-	assert(!messages_empty());
-	const uint32_t i = s_ctx.messages.write;
-	return s_ctx.messages.items[i & ITEMS_MASK];
-}
-
-static void messages_consume() {
-	assert(!messages_empty());
-	++s_ctx.messages.read;
 }
 
 // PUBLIC API

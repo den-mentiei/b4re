@@ -14,8 +14,8 @@ typedef enum {
 } message_type_t;
 
 typedef struct {
-	uint8_t type;
-	void*   data;
+	uint8_t  type;
+	uint8_t* data[];
 } message_t;
 
 void client_init();
