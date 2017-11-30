@@ -3,9 +3,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// TODO: @refactor Do *not* include!
-#include "world.h"
-
 struct allocator_t;
 
 #define MAX_API_STRING_LENGTH 64

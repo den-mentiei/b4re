@@ -86,9 +86,8 @@ static void pages_update() {
 			size_t bytes;
 			if (http_response_size(p->request_id, &bytes)) {
 				log_info("[client] Got a response (%zu bytes).");
+				// TODO: Handle the response and issue a message. Or free it directly.
 			}
-
-			// TODO: Handle the response and issue a message.
 
 			pages[i] = pages[n - 1];
 			--n;
