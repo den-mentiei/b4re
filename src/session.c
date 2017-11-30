@@ -16,7 +16,7 @@
 
 #include "api.h"
 
-#define AUTO_UPDATE_INTERVALS_MS 1000.0f
+#define AUTO_UPDATE_INTERVALS_MS 5000.0f
 
 static struct {
 	allocator_t* alloc;
@@ -89,11 +89,16 @@ void session_update(float dt) {
 				s_ctx.is_logged_in = true;
 				break;
 
-			/* case MESSAGE_TYPE_LOGOUT: */
-			/* 	break; */
+			case MESSAGE_TYPE_LOGOUT:
+				s_ctx.is_logged_in = false;
+				break;
 
-			/* case MESSAGE_TYPE_STATE: */
-			/* 	break; */
+			case MESSAGE_TYPE_STATE: {
+				// TODO:
+				api_state_t* s = (api_state_t*)msg->data;
+				log_info("[sesion] t = %ul | %s at %d,%d", s->timestamp, s->player.username, s->player.x, s->player.y);
+				break;
+			}
 
 			/* case MESSAGE_TYPE_MAP: */
 			/* 	break; */

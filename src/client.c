@@ -6,6 +6,8 @@
 
 #include "log.h"
 #include "http.h"
+#include "allocator.h"
+#include "api.h"
 
 #define RESPONSE_BUFFER_SIZE (8 * 1024)
 #define RESPONSE_MESSAGE_BUFFER_SIZE (8 * 1024)
@@ -68,6 +70,8 @@ void handle_logout(const void* response, void* out_msg) {
 void handle_state(const void* response, void* out_msg) {
 	assert(response);
 	assert(out_msg);
+
+	api_parse_state(allocator_main(), response, out_msg);
 }
 
 void handle_map(const void* response, void* out_msg) {
@@ -271,12 +275,38 @@ void client_login(const char* username, const char* password) {
 
 void client_logout() {
 	log_info("[client] Logging out");
-	/* http_post("http://ancientlighthouse.com:8080/api/logout", http_handler, NULL); */
+
+	page_t* p = pages_alloc();
+
+#ifdef DEBUG
+	p->tag = "logout";
+#endif
+
+	p->response_type = MESSAGE_TYPE_LOGOUT;
+	p->request_id    = http_post(
+		"http://ancientlighthouse.com:8080/api/logout",
+		p->response_buffer,
+		RESPONSE_BUFFER_SIZE);
+
+	pages_put_in_work(p);
 }
 
 void client_state() {
 	log_info("[client] Fetching state");
-	/* http_get("http://ancientlighthouse.com:8080/api/state", http_handler, STATE_TAG); */
+
+	page_t* p = pages_alloc();
+
+#ifdef DEBUG
+	p->tag = "state";
+#endif
+
+	p->response_type = MESSAGE_TYPE_STATE;
+	p->request_id    = http_get(
+		"http://ancientlighthouse.com:8080/api/state",
+		p->response_buffer,
+		RESPONSE_BUFFER_SIZE);
+
+	pages_put_in_work(p);
 }
 
 void client_move(uint8_t* coords, size_t count) {
