@@ -1,77 +1,51 @@
 #include "session.h"
 
 #include <assert.h>
-#include <string.h> // memset, memcpy, strcpy
-#include <stdio.h>  // snprintf
-
 #include <math.h>   // floor
-#include <stdlib.h> // random
+#include <stdlib.h> // rand
 
-#include <tinycthread.h>
-
-#include "allocator.h"
 #include "log.h"
-
 #include "client.h"
-
 #include "api.h"
 
 #define AUTO_UPDATE_INTERVALS_MS 5000.0f
 
-static struct {
-	allocator_t* alloc;
+typedef enum {
+	STATUS_NA = 0,
+	STATUS_AWAITING_LOGIN,
+	STATUS_AWAITING_STATE,
+	STATUS_ACTIVE,
+	STATUS_AWAITING_LOGOUT
+} status_t;
 
+static struct {
 	float t;
 
 	session_t current;
-	session_t synced;
-
-	bool is_logged_in;
-	bool is_active;
+	uint8_t   status;
 
 	char username[128];
 	char avatar[128];
-
-	mtx_t lock;
 } s_ctx;
-
-static bool safe_is_logged_in() {
-	mtx_lock(&s_ctx.lock);
-	bool is_logged_in = s_ctx.is_logged_in;
-	mtx_unlock(&s_ctx.lock);
-	return is_logged_in;
-}
-
-static bool safe_is_active() {
-	mtx_lock(&s_ctx.lock);
-	bool is_active = s_ctx.is_active;
-	mtx_unlock(&s_ctx.lock);
-	return is_active;
-}
 
 static uint8_t randi(uint8_t max) {
 	return floor(((float)rand() / RAND_MAX) * max);
 }
 
-void session_init(struct allocator_t* alloc) {
-	assert(alloc);
-
-	s_ctx.alloc = alloc;
-	if (mtx_init(&s_ctx.lock, mtx_plain) != thrd_success) log_fatal("[seession] failed to create mutex");
-
+void session_init() {
 	// TODO: Remove it.
 	for (size_t y = 0; y < WORLD_PLANE_SIZE; ++y) {
 		for (size_t x = 0; x < WORLD_PLANE_SIZE; ++x) {
-			s_ctx.synced.world.locations[x][y].has_data  = true;
-			s_ctx.synced.world.locations[x][y].is_hidden = false;
-			s_ctx.synced.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP);
+			s_ctx.current.world.locations[x][y].has_data  = true;
+			s_ctx.current.world.locations[x][y].is_hidden = false;
+			s_ctx.current.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP);
 			/* if ((float)rand() / RAND_MAX > 0.5f) { */
-			/* 	s_ctx.synced.world.locations[x][y].has_data  = true; */
-			/* 	s_ctx.synced.world.locations[x][y].is_hidden = false; */
-			/* 	s_ctx.synced.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP); */
+			/* 	s_ctx.current.world.locations[x][y].has_data  = true; */
+			/* 	s_ctx.current.world.locations[x][y].is_hidden = false; */
+			/* 	s_ctx.current.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP); */
 			/* } else { */
-			/* 	s_ctx.synced.world.locations[x][y].has_data  = true; */
-			/* 	s_ctx.synced.world.locations[x][y].is_hidden = true; */
+			/* 	s_ctx.current.world.locations[x][y].has_data  = true; */
+			/* 	s_ctx.current.world.locations[x][y].is_hidden = true; */
 			/* } */
 		}
 	}
@@ -86,32 +60,43 @@ void session_update(float dt) {
 				break;
 
 			case MESSAGE_TYPE_LOGIN:
-				s_ctx.is_logged_in = true;
+				if (s_ctx.status == STATUS_AWAITING_LOGIN) {
+					s_ctx.status = STATUS_AWAITING_STATE;
+					client_state();
+				} else {
+					log_error("[session] Got unexpected 'login' message.");
+				}
 				break;
 
 			case MESSAGE_TYPE_LOGOUT:
-				s_ctx.is_logged_in = false;
+				if (s_ctx.status == STATUS_AWAITING_LOGOUT) s_ctx.status = STATUS_NA;
 				break;
 
 			case MESSAGE_TYPE_STATE: {
+				if (s_ctx.status == STATUS_AWAITING_STATE) s_ctx.status = STATUS_ACTIVE;
 				// TODO:
 				api_state_t* s = (api_state_t*)msg->data;
-				log_info("[sesion] t = %ul | %s at %d,%d", s->timestamp, s->player.username, s->player.x, s->player.y);
+				log_info("[session] t = %ul | %s at %d,%d", s->timestamp, s->player.username, s->player.x, s->player.y);
 				break;
 			}
 
-			/* case MESSAGE_TYPE_MAP: */
-			/* 	break; */
+			case MESSAGE_TYPE_MAP: {
+				// TODO:
+				api_map_t* m = (api_map_t*)msg->data;
+				log_info("[session] Got map for %u,%u", m->x, m->y);
+				break;
+			}
 
 			/* case MESSAGE_TYPE_REVEAL: */
 			/* 	break; */
 
 			default: log_fatal("[session] Got an unknown message!");
 		}
+
 		client_messages_consume();
 	}
 
-	if (safe_is_logged_in()) {
+	if (s_ctx.status == STATUS_ACTIVE) {
 		s_ctx.t -= dt;
 		if (s_ctx.t < 0.0f) {
 			s_ctx.t = AUTO_UPDATE_INTERVALS_MS;
@@ -120,25 +105,24 @@ void session_update(float dt) {
 	}
 }
 
-void session_shutdown() {
-	mtx_destroy(&s_ctx.lock);
-}
+void session_shutdown() {}
 
 const session_t* session_current() {
-	return safe_is_active() ? &s_ctx.current : NULL;
+	return s_ctx.status == STATUS_ACTIVE ? &s_ctx.current : NULL;
 }
 
 void session_start(const char* username, const char* password) {
-	assert(!safe_is_active());
+	assert(s_ctx.status == STATUS_NA);
+	s_ctx.status = STATUS_AWAITING_LOGIN;
 	client_login(username, password);
 }
 
 void session_end() {
-	assert(safe_is_active());
+	assert(s_ctx.status == STATUS_ACTIVE);
 	client_logout();
 }
 
 void session_reveal(uint32_t x, uint32_t y) {
-	assert(safe_is_active());
+	assert(s_ctx.status == STATUS_ACTIVE);
 	client_reveal(x, y);
 }

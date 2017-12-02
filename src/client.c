@@ -180,8 +180,8 @@ static void pages_handle_response(page_t* p) {
 		log_info("[client] Got a response code %u", code);
 		size_t bytes;
 		if (http_response_size(p->request_id, &bytes)) {
-			log_info("[client] Got a response %zu bytes:", bytes);
-			log_info("[client] %s", p->response_buffer);
+			/* log_info("[client] Got a response %zu bytes:", bytes); */
+			/* log_info("[client] %s", p->response_buffer); */
 
 			message_t* m = (message_t*)p->response_message;
 			m->type = p->response_type;
@@ -250,7 +250,6 @@ void client_login(const char* username, const char* password) {
 
 	log_info("[client] Logging in with username=%s", username);
 
-	// TODO: Copy it.
 	http_form_part_t form[] = {
 		{ "username", username },
 		{ "password", password }

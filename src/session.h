@@ -39,9 +39,7 @@ typedef struct {
 	world_t world;
 } session_t;
 
-struct allocator_t;
-
-void session_init(struct allocator_t* alloc);
+void session_init();
 void session_update(float dt);
 void session_shutdown();
 
@@ -51,5 +49,3 @@ void session_start(const char* username, const char* password);
 void session_end();
 
 void session_reveal(uint32_t x, uint32_t y);
-
-void session_foo();
