@@ -2,11 +2,13 @@
 
 #include <assert.h>
 #include <stddef.h>
-#include <string.h> // strncmp
+#include <string.h> // strcmp
 
 #include "log.h"
 #include "json.h"
 #include "world.h"
+
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #define BOOL_PROPERTY(j, v, s)      json_bool  ((j), json_property((j), (v), (s)))
 #define NUMBER_PROPERTY(j, v, s)    json_number((j), json_property((j), (v), (s)))
@@ -25,19 +27,43 @@ static void parse_resource(const struct json_t* json, json_iterator_t object, ap
 	res->segment_time    = NUMBER_PROPERTY(json, object, "segment_time");
 }
 
+static const struct avatar_t {
+	const char* key;
+	uint8_t     id;
+} AVATARS[] = {
+	{ "avatar_man1", API_AVATAR_MAN1 },
+	{ "avatar_man2", API_AVATAR_MAN2 },
+	{ "avatar_man3", API_AVATAR_MAN3 },
+	{ "avatar_man4", API_AVATAR_MAN4 },
+	{ "avatar_man5", API_AVATAR_MAN5 },
+	{ "avatar_man6", API_AVATAR_MAN6 },
+	{ NULL },
+};
+
+static uint8_t parse_avatar(const struct json_t* json, json_iterator_t object) {
+	char avatar_key[MAX_API_STRING_LENGTH];
+	STRING_PROPERTY(json, object, "avatar", avatar_key);
+
+	for (const struct avatar_t* a = AVATARS; a->key; ++a) {
+		if (strcmp(a->key, avatar_key) == 0) return a->id;
+	}
+
+	return API_AVATAR_UNKNOWN;
+}
+
 static void parse_player(const struct json_t* json, const json_iterator_t object, api_state_player_t* player) {
 	assert(json);
 	assert(player);
 
 	STRING_PROPERTY(json, object, "username", &player->username[0]);
-	STRING_PROPERTY(json, object, "avatar",   &player->avatar[0]);
 	STRING_PROPERTY(json, object, "plane_id", &player->plane_id[0]);
 
-	player->level = NUMBER_PROPERTY(json, object, "level");
-	player->exp   = NUMBER_PROPERTY(json, object, "experience");
-	player->money = NUMBER_PROPERTY(json, object, "money");
-	player->x     = NUMBER_PROPERTY(json, object, "x");
-	player->y     = NUMBER_PROPERTY(json, object, "y");
+	player->level  = NUMBER_PROPERTY(json, object, "level");
+	player->exp    = NUMBER_PROPERTY(json, object, "experience");
+	player->money  = NUMBER_PROPERTY(json, object, "money");
+	player->x      = NUMBER_PROPERTY(json, object, "x");
+	player->y      = NUMBER_PROPERTY(json, object, "y");
+	player->avatar = parse_avatar(json, object);
 
 	const json_iterator_t mind   = json_property(json, object, "mind");
 	const json_iterator_t matter = json_property(json, object, "matter");
@@ -63,34 +89,29 @@ bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* s
 	return true;
 }
 
-static const struct {
+static const struct terrain_t {
 	const char* key;
-	uint8_t terrain;
-} s_terrain_lookup[] = {
-	{ "rock_water",   TERRAIN_ROCK_WATER },
-	{ "rock_solid",   TERRAIN_ROCK_SOLID },
-	{ "rock",         TERRAIN_ROCK },
-	{ "rock_sand",    TERRAIN_ROCK_SAND },
-	{ "wild",         TERRAIN_WILD },
-	{ "grass",        TERRAIN_GRASS },
-	{ "earth",        TERRAIN_EARTH },
-	{ "clay",         TERRAIN_CLAY },
-	{ "sand",         TERRAIN_SAND },
-	{ "water",        TERRAIN_WATER },
+	uint8_t     id;
+} TERRAINS[] = {
+	{ "rock_water",   TERRAIN_ROCK_WATER   },
+	{ "rock_solid",   TERRAIN_ROCK_SOLID   },
+	{ "rock",         TERRAIN_ROCK         },
+	{ "rock_sand",    TERRAIN_ROCK_SAND    },
+	{ "wild",         TERRAIN_WILD         },
+	{ "grass",        TERRAIN_GRASS        },
+	{ "earth",        TERRAIN_EARTH        },
+	{ "clay",         TERRAIN_CLAY         },
+	{ "sand",         TERRAIN_SAND         },
+	{ "water",        TERRAIN_WATER        },
 	{ "water_bottom", TERRAIN_WATER_BOTTOM },
-	{ "water_deep",   TERRAIN_WATER_DEEP },
+	{ "water_deep",   TERRAIN_WATER_DEEP   },
+	{ NULL }
 };
-static const size_t NUM_TERRAINS = sizeof(s_terrain_lookup) / sizeof(s_terrain_lookup[0]);
 
-static uint8_t parse_terrain(const char* data) {
-	const size_t data_length = strlen(data);
-	for (size_t i = 0; i < NUM_TERRAINS; ++i) {
-		const size_t lookup_length  = strlen(s_terrain_lookup[i].key);
-		const size_t compare_length = lookup_length < data_length ? lookup_length : data_length;
-		if (lookup_length != data_length) continue;
-		if (strncmp(s_terrain_lookup[i].key, data, compare_length) == 0) {
-			return s_terrain_lookup[i].terrain;
-		}
+static uint8_t parse_terrain(const char* key) {
+	assert(key);
+	for (const struct terrain_t* t = TERRAINS; t->key; ++t) {
+		if (strcmp(t->key, key) == 0) return t->id;
 	}
 	return TERRAIN_DEFAULT;
 }

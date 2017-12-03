@@ -24,11 +24,17 @@ typedef struct {
 	uint8_t segment_time;
 } api_state_resource_t;
 
-typedef struct {
-	char username[MAX_API_STRING_LENGTH];
-	char avatar[MAX_API_STRING_LENGTH];
-	char plane_id[MAX_API_STRING_LENGTH];
+typedef enum {
+	API_AVATAR_UNKNOWN = 0,
+	API_AVATAR_MAN1,
+	API_AVATAR_MAN2,
+	API_AVATAR_MAN3,
+	API_AVATAR_MAN4,
+	API_AVATAR_MAN5,
+	API_AVATAR_MAN6,
+} api_avatar_t;
 
+typedef struct {
 	uint32_t level;
 	uint32_t exp;
 	uint32_t money;
@@ -36,6 +42,11 @@ typedef struct {
 
 	api_state_resource_t mind;
 	api_state_resource_t matter;
+
+	char username[MAX_API_STRING_LENGTH];
+	char plane_id[MAX_API_STRING_LENGTH];
+
+	uint8_t avatar;
 
 	// TODO: Movement, sigh. Skills. Skill keys. Under construction.
 } api_state_player_t;

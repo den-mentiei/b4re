@@ -24,9 +24,6 @@ static struct {
 
 	session_t current;
 	uint8_t   status;
-
-	char username[128];
-	char avatar[128];
 } s_ctx;
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -55,13 +52,11 @@ static void handle_state(const api_state_t* s) {
 	strncpy(s_ctx.current.player.username, s->player.username, n - 1);
 	s_ctx.current.player.username[n - 1] = 0;
 
-	strncpy(s_ctx.current.player.avatar, s->player.avatar, n - 1);
-	s_ctx.current.player.avatar[n - 1] = 0;
-
-	s_ctx.current.player.x     = s->player.x;
-	s_ctx.current.player.y     = s->player.y;
-	s_ctx.current.player.level = s->player.level;
-	s_ctx.current.player.exp   = s->player.exp;
+	s_ctx.current.player.x      = s->player.x;
+	s_ctx.current.player.y      = s->player.y;
+	s_ctx.current.player.level  = s->player.level;
+	s_ctx.current.player.exp    = s->player.exp;
+	s_ctx.current.player.avatar = s->player.avatar;
 	
 	handle_state_resource(&s->player.mind,   &s_ctx.current.player.mind);
 	handle_state_resource(&s->player.matter, &s_ctx.current.player.matter);

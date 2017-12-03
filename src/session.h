@@ -27,15 +27,15 @@ typedef struct {
 
 typedef struct {
 	struct {
-		char username[MAX_SESSION_STRING_LENGTH];
-		char avatar[MAX_SESSION_STRING_LENGTH];
-
 		uint32_t level;
 		uint32_t exp;
 		int32_t  x, y;
 
 		resource_t  mind;
 		resource_t  matter;
+
+		char    username[MAX_SESSION_STRING_LENGTH];
+		uint8_t avatar;
 	} player;
 
 	world_t world;
