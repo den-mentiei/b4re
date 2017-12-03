@@ -413,17 +413,6 @@ static void center_on_player() {
 	s_ctx.selector_y  = py;
 }
 
-void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
-	if (!session_current()) game_state_switch(GAME_STATE_LOGIN);
-	
-	if (!s_ctx.has_selector) {
-		center_on_player();
-		s_ctx.has_selector = true;
-	}
-
-	map_view_update();
-}
-
 typedef struct {
 	const struct sprite_t* icon; 
 	const struct sprite_t* body;
@@ -924,8 +913,23 @@ static void player_render() {
 	const int32_t ty = py - s_ctx.tile_y;
 	const float   x = VIEW_OFFSET + s_ctx.map_x + tx * TILE;
 	const float   y = VIEW_OFFSET + s_ctx.map_y + ty * TILE;
-	// TODO: Use a correct avatar.
-	render_sprite(assets_sprites()->avatars.avatar_man2, x, y);
+
+#define AVATAR(name) assets_sprites()->avatars.name
+	const struct sprite_t* AVATARS[] = {
+		// 0 - unknown avatar.
+		AVATAR(avatar_man1),
+		AVATAR(avatar_man1),
+		AVATAR(avatar_man2),
+		AVATAR(avatar_man3),
+		AVATAR(avatar_man4),
+		AVATAR(avatar_man5),
+		AVATAR(avatar_man6),
+	};
+#undef AVATAR
+	uint8_t id = session_current()->player.avatar;
+	if (id > sizeof(AVATARS) / sizeof(AVATARS[0])) id = 0;
+
+	render_sprite(AVATARS[id], x, y);
 }
 
 static void chrome_render() {
@@ -946,11 +950,23 @@ static void chrome_render() {
 	render_text("Hello, sailor!", 512.0f * 0.5f, 16.0f, &title_params);
 }
 
+// PUBLIC API
+// ==========
+
+void states_travel_map_update(uint16_t width, uint16_t height, float dt) {
+	if (!session_current()) game_state_switch(GAME_STATE_LOGIN);
+	
+	if (!s_ctx.has_selector) {
+		center_on_player();
+		s_ctx.has_selector = true;
+	}
+
+	map_view_update();
+}
+
+
 void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	if (!session_current()) return;
-
-	// TODO: Render map view.
-	render_sprite(assets_sprites()->travel_map.atlas_tiled_grass, 32.0f, 32.0f);
 
 	map_view_render();
 	path_render();
@@ -958,6 +974,7 @@ void states_travel_map_render(uint16_t width, uint16_t height, float dt) {
 	reveal_render();
 	selector_render();
 	chrome_render();
+
 	compass_render();
 	resources_render();
 	coordinates_render(5 * 32.0f, 512.0f - 32.0f - 2.0f, s_ctx.selector_x, s_ctx.selector_y);
