@@ -1,6 +1,7 @@
 #include "session.h"
 
 #include <assert.h>
+#include <string.h> // strncpy
 #include <math.h>   // floor
 #include <stdlib.h> // rand
 
@@ -28,9 +29,49 @@ static struct {
 	char avatar[128];
 } s_ctx;
 
-static uint8_t randi(uint8_t max) {
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+static inline uint8_t randi(uint8_t max) {
 	return floor(((float)rand() / RAND_MAX) * max);
 }
+
+static void handle_state_resource(const api_state_resource_t* r, resource_t* out) {
+	assert(r);
+	assert(out);
+
+	out->last_update     = r->last_update;
+	out->booster_time    = r->booster_time;
+	out->value           = r->value;
+	out->max             = r->max;
+	out->regen_rate      = r->regen_rate;
+	out->filled_segments = r->filled_segments;
+	out->segment_time    = r->segment_time;
+}
+
+static void handle_state(const api_state_t* s) {
+	assert(s);
+
+	// TODO:
+	log_info("[session] t = %ul | %s at %d,%d", s->timestamp, s->player.username, s->player.x, s->player.y);
+
+	const size_t n = MIN(MAX_API_STRING_LENGTH, MAX_SESSION_STRING_LENGTH);
+	strncpy(s_ctx.current.player.username, s->player.username, n - 1);
+	s_ctx.current.player.username[n - 1] = 0;
+
+	strncpy(s_ctx.current.player.avatar, s->player.avatar, n - 1);
+	s_ctx.current.player.avatar[n - 1] = 0;
+
+	s_ctx.current.player.x     = s->player.x;
+	s_ctx.current.player.y     = s->player.y;
+	s_ctx.current.player.level = s->player.level;
+	s_ctx.current.player.exp   = s->player.exp;
+	
+	handle_state_resource(&s->player.mind,   &s_ctx.current.player.mind);
+	handle_state_resource(&s->player.matter, &s_ctx.current.player.matter);
+}
+
+// PUBLIC API
+// ==========
 
 void session_init() {
 	// TODO: Remove it.
@@ -74,9 +115,7 @@ void session_update(float dt) {
 
 			case MESSAGE_TYPE_STATE: {
 				if (s_ctx.status == STATUS_AWAITING_STATE) s_ctx.status = STATUS_ACTIVE;
-				// TODO:
-				api_state_t* s = (api_state_t*)msg->data;
-				log_info("[session] t = %ul | %s at %d,%d", s->timestamp, s->player.username, s->player.x, s->player.y);
+				handle_state((api_state_t*)msg->data);
 				break;
 			}
 

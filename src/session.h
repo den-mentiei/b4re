@@ -23,14 +23,16 @@ typedef struct {
 	uint8_t segment_time;
 } resource_t;
 
+#define MAX_SESSION_STRING_LENGTH 64
+
 typedef struct {
 	struct {
-		const char* username;
-		const char* avatar;
+		char username[MAX_SESSION_STRING_LENGTH];
+		char avatar[MAX_SESSION_STRING_LENGTH];
 
-		uint32_t    level;
-		uint32_t    exp;
-		uint32_t    x, y;
+		uint32_t level;
+		uint32_t exp;
+		int32_t  x, y;
 
 		resource_t  mind;
 		resource_t  matter;

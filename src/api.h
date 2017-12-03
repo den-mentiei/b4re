@@ -32,7 +32,7 @@ typedef struct {
 	uint32_t level;
 	uint32_t exp;
 	uint32_t money;
-	uint32_t x, y;
+	int32_t  x, y;
 
 	api_state_resource_t mind;
 	api_state_resource_t matter;
