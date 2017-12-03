@@ -407,8 +407,8 @@ static void center_on_player() {
 
 	s_ctx.map_x       = 0.0f;
 	s_ctx.map_y       = 0.0f;
-	s_ctx.tile_x      = px - OFFSET_TO_CENTER;
-	s_ctx.tile_y      = py - OFFSET_TO_CENTER;
+	s_ctx.tile_x      = px > OFFSET_TO_CENTER ? px - OFFSET_TO_CENTER : 0;
+	s_ctx.tile_y      = py > OFFSET_TO_CENTER ? py - OFFSET_TO_CENTER : 0;
 	s_ctx.selector_x  = px;
 	s_ctx.selector_y  = py;
 }
@@ -915,16 +915,16 @@ static void player_render() {
 	const int32_t px = session_current()->player.x;
 	const int32_t py = session_current()->player.y;
 
-	const int32_t tx = px - s_ctx.tile_x;
-	const int32_t ty = py - s_ctx.tile_y;
-
-	if (tx >= s_ctx.tile_x && tx < s_ctx.tile_x + VIEW_TILES &&
-		ty >= s_ctx.tile_y && ty < s_ctx.tile_y + VIEW_TILES) {
+	if (!(px >= s_ctx.tile_x && px < s_ctx.tile_x + VIEW_TILES &&
+	      py >= s_ctx.tile_y && py < s_ctx.tile_y + VIEW_TILES)) {
 		return;
 	}
 
-	const float x = VIEW_OFFSET + s_ctx.map_x + tx * TILE;
-	const float y = VIEW_OFFSET + s_ctx.map_y + ty * TILE;
+	const int32_t tx = px - s_ctx.tile_x;
+	const int32_t ty = py - s_ctx.tile_y;
+	const float   x = VIEW_OFFSET + s_ctx.map_x + tx * TILE;
+	const float   y = VIEW_OFFSET + s_ctx.map_y + ty * TILE;
+	// TODO: Use a correct avatar.
 	render_sprite(assets_sprites()->avatars.avatar_man2, x, y);
 }
 
