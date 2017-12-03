@@ -9,12 +9,12 @@
 #include "allocator.h"
 #include "api.h"
 
-//#define USE_LOCAL_SERVER
+/* #define USE_LOCAL_SERVER */
 
 #if defined(DEBUG) && defined(USE_LOCAL_SERVER)
-	#define API_ROOT(s) "http://localhost:8080/api/"s
+	#define API_ENDPOINT(s) "http://localhost:8080/api/"s
 #else
-	#define API_ROOT(s) "http://ancientlighthouse.com:8080/api/"s
+	#define API_ENDPOINT(s) "http://ancientlighthouse.com:8080/api/"s
 #endif
 
 #define RESPONSE_BUFFER_SIZE (8 * 1024)
@@ -224,6 +224,49 @@ static void pages_update() {
 	s_ctx.num_pages_in_work = n;
 }
 
+// API HELPERS
+// ===========
+
+static void api_get(const char* url, uint8_t type, const char* tag) {
+	assert(url);
+	assert(tag);
+
+	page_t* p = pages_alloc();
+
+#ifdef DEBUG
+	p->tag = tag;
+#else
+	(void)tag;
+#endif
+
+	p->response_type = type;
+	p->request_id    = http_get(url, p->response_buffer, RESPONSE_BUFFER_SIZE);
+
+	pages_put_in_work(p);
+}
+
+static void api_post_form(const char* url, const http_form_part_t* parts, size_t num_parts, uint8_t type, const char* tag) {
+	assert(url);
+	assert(tag);
+
+	page_t* p = pages_alloc();
+
+#ifdef DEBUG
+	p->tag = tag;
+#else
+	(void)tag;
+#endif
+
+	p->response_type = type;
+	p->request_id    = http_post_form(url, parts, num_parts, p->response_buffer, RESPONSE_BUFFER_SIZE);
+
+	pages_put_in_work(p);
+}
+
+static void api_post(const char* url, uint8_t type, const char* tag) {
+	api_post_form(url, NULL, 0, type, tag);
+}
+
 // PUBLIC API
 // ==========
 
@@ -263,102 +306,42 @@ void client_login(const char* username, const char* password) {
 		{ "password", password }
 	};
 
-	page_t* p = pages_alloc();
-
-#ifdef DEBUG
-	p->tag = "login";
-#endif
-
-	p->response_type = MESSAGE_TYPE_LOGIN;
-	p->request_id    = http_post_form(
-		API_ROOT("login"),
-		form,
-		sizeof(form) / sizeof(form[0]),
-		p->response_buffer,
-		RESPONSE_BUFFER_SIZE);
-
-	pages_put_in_work(p);
+	api_post_form(API_ENDPOINT("login"), form, 2, MESSAGE_TYPE_LOGIN, "login");
 }
 
 void client_logout() {
 	log_info("[client] Logging out");
-
-	page_t* p = pages_alloc();
-
-#ifdef DEBUG
-	p->tag = "logout";
-#endif
-
-	p->response_type = MESSAGE_TYPE_LOGOUT;
-	p->request_id    = http_post(
-		"http://ancientlighthouse.com:8080/api/logout",
-		p->response_buffer,
-		RESPONSE_BUFFER_SIZE);
-
-	pages_put_in_work(p);
+	api_post(API_ENDPOINT("logout"), MESSAGE_TYPE_LOGOUT, "logout");
 }
 
 void client_state() {
 	log_info("[client] Fetching state");
-
-	page_t* p = pages_alloc();
-
-#ifdef DEBUG
-	p->tag = "state";
-#endif
-
-	p->response_type = MESSAGE_TYPE_STATE;
-	p->request_id    = http_get(
-		"http://ancientlighthouse.com:8080/api/state",
-		p->response_buffer,
-		RESPONSE_BUFFER_SIZE);
-
-	pages_put_in_work(p);
+	api_get(API_ENDPOINT("state"), MESSAGE_TYPE_STATE, "state");
 }
 
 void client_move(uint8_t* coords, size_t count) {
 	assert(coords);
 	assert(count > 0);
+	
+	// TODO:
 }
 
 void client_map(int32_t x, int32_t y, uint8_t size) {
 	assert(size > 0);
+
 	log_info("[client] Fetching map");
 
 	char url[128];
-	snprintf(url, sizeof(url), API_ROOT("map/homeland_3/%d/%d/%u"), x, y, size);
+	snprintf(url, sizeof(url), API_ENDPOINT("map/homeland_3/%d/%d/%u"), x, y, size);
 
-	page_t* p = pages_alloc();
-
-#ifdef DEBUG
-	p->tag = "map";
-#endif
-
-	p->response_type = MESSAGE_TYPE_STATE;
-	p->request_id    = http_post(
-		url,
-		p->response_buffer,
-		RESPONSE_BUFFER_SIZE);
-
-	pages_put_in_work(p);
+	api_get(url, MESSAGE_TYPE_MAP, "map");
 }
 
-void client_reveal(uint32_t x, uint32_t y) {
+void client_reveal(int32_t x, int32_t y) {
 	log_info("[client] Revealing %u, %u", x, y);
+
 	char url[128];
-	snprintf(url, sizeof(url), API_ROOT("reveal/%u/%u"), x, y);
+	snprintf(url, sizeof(url), API_ENDPOINT("reveal/%u/%u"), x, y);
 
-	page_t* p = pages_alloc();
-
-#ifdef DEBUG
-	p->tag = "reveal";
-#endif
-
-	p->response_type = MESSAGE_TYPE_REVEAL;
-	p->request_id    = http_post(
-		url,
-		p->response_buffer,
-		RESPONSE_BUFFER_SIZE);
-
-	pages_put_in_work(p);
+	api_post(url, MESSAGE_TYPE_REVEAL, "reveal");
 }

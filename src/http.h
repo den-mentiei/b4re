@@ -25,7 +25,7 @@ http_work_id_t http_get(const char* url, void* buffer, size_t size);
 
 http_work_id_t http_post(const char* url, void* buffer, size_t size);
 
-http_work_id_t http_post_form(const char* url, const http_form_part_t* parts, size_t count, void* buffer, size_t size);
+http_work_id_t http_post_form(const char* url, const http_form_part_t* parts, size_t num_parts, void* buffer, size_t size);
 
 typedef enum {
 	HTTP_STATUS_UNKNOWN = 0,

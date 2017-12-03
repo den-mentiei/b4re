@@ -345,7 +345,7 @@ http_work_id_t http_get(const char* url, void* buffer, size_t size) {
 	return id;
 }
 
-http_work_id_t http_post_form(const char* url, const http_form_part_t* parts, size_t count, void* buffer, size_t size) {
+http_work_id_t http_post_form(const char* url, const http_form_part_t* parts, size_t num_parts, void* buffer, size_t size) {
 	assert(url);
 	assert(buffer);
 	assert(size > 0);
@@ -353,19 +353,19 @@ http_work_id_t http_post_form(const char* url, const http_form_part_t* parts, si
 	if (!work_can_add(&s_ctx.work)) return 0;
 
 	http_work_id_t id  = requests_add(buffer, size);
-	request_t*      req = &work_lookup(&s_ctx.work, id)->req;
-	CURL*           h   = req->h;
+	request_t*     req = &work_lookup(&s_ctx.work, id)->req;
+	CURL*          h   = req->h;
 
 	curl_easy_setopt(h, CURLOPT_URL, url);
 	curl_easy_setopt(h, CURLOPT_POST, 1);
 
-	if (parts && count > 0) {
+	if (parts && num_parts > 0) {
 		curl_mime* m = curl_mime_init(h);
 		if (!m) log_fatal("[http] Failed to create mime data");
 
 		req->mime = m;
 
-		for (size_t i = 0; i < count; ++i) {
+		for (size_t i = 0; i < num_parts; ++i) {
 			curl_mimepart* p = curl_mime_addpart(m);
 			curl_mime_name(p, parts[i].key,   CURL_ZERO_TERMINATED);
 			curl_mime_data(p, parts[i].value, CURL_ZERO_TERMINATED);

@@ -27,7 +27,7 @@ void client_logout();
 void client_state();
 void client_move(uint8_t* coords, size_t count);
 void client_map(int32_t x, int32_t y, uint8_t size);
-void client_reveal(uint32_t x, uint32_t y);
+void client_reveal(int32_t x, int32_t y);
 
 bool client_messages_peek(message_t** msg);
 void client_messages_consume();
