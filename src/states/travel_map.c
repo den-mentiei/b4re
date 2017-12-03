@@ -15,21 +15,22 @@
 #include "render_text.h"
 #include "generated/assets.h"
 
-static const size_t VIEW_TILES     = 7;
-static const size_t VIEW_TILES_PAD = VIEW_TILES + 1;
-static const size_t PLANE_TILES    = 256;
-static const float  TILE           = 64.0f;
-static const float  VIEW_SIZE      = VIEW_TILES * TILE;
-static const float  VIEW_OFFSET    = 0.5f * TILE;
-static const float  SCREEN_SIZE    = 8    * TILE;
+static const size_t VIEW_TILES       = 7;
+static const size_t VIEW_TILES_PAD   = VIEW_TILES + 1;
+static const size_t OFFSET_TO_CENTER = VIEW_TILES / 2;
+static const size_t PLANE_TILES      = 256;
+static const float  TILE             = 64.0f;
+static const float  VIEW_SIZE        = VIEW_TILES * TILE;
+static const float  VIEW_OFFSET      = 0.5f * TILE;
+static const float  SCREEN_SIZE      = 8    * TILE;
 
 #define MAX_PATH_LENGTH 100
 
 static struct {
-	float map_x;
-	float map_y;
-	int   tile_x;
-	int   tile_y;
+	float   map_x;
+	float   map_y;
+	int32_t tile_x;
+	int32_t tile_y;
 
 	size_t num_steps;
 	struct {
@@ -38,9 +39,9 @@ static struct {
 		uint8_t price;
 	} steps[MAX_PATH_LENGTH];
 
-	int  selector_x;
-	int  selector_y;
-	bool has_selector;
+	int32_t selector_x;
+	int32_t selector_y;
+	bool    has_selector;
 
 	bool is_drawing;
 	bool is_scrolling;
@@ -187,10 +188,10 @@ static void scroll_update() {
 	float dx, dy;
 	input_position_delta(&dx, &dy);
 
-	float new_x  = s_ctx.map_x + dx;
-	float new_y  = s_ctx.map_y + dy;
-	int   new_tx = s_ctx.tile_x;
-	int   new_ty = s_ctx.tile_y;
+	float   new_x  = s_ctx.map_x + dx;
+	float   new_y  = s_ctx.map_y + dy;
+	int32_t new_tx = s_ctx.tile_x;
+	int32_t new_ty = s_ctx.tile_y;
 
 	if (new_x < -TILE) {
 		new_x  += TILE;
@@ -382,10 +383,10 @@ static void reveal_render() {
 	};
 	const size_t N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
 
-	const float    ox = VIEW_OFFSET + s_ctx.map_x;
-	const float    oy = VIEW_OFFSET + s_ctx.map_y;
-	const uint32_t px = session_current()->player.x;
-	const uint32_t py = session_current()->player.y;
+	const float   ox = VIEW_OFFSET + s_ctx.map_x;
+	const float   oy = VIEW_OFFSET + s_ctx.map_y;
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
 
 	for (size_t i = 0; i < N; ++i) {
 		const int64_t nx = px + LOOKUP[i].dx;
@@ -401,9 +402,9 @@ static void reveal_render() {
 }
 
 static void center_on_player() {
-	const uint32_t OFFSET_TO_CENTER = VIEW_TILES / 2;
-	const uint32_t px = session_current()->player.x;
-	const uint32_t py = session_current()->player.y;
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
+
 	s_ctx.map_x       = 0.0f;
 	s_ctx.map_y       = 0.0f;
 	s_ctx.tile_x      = px - OFFSET_TO_CENTER;
@@ -478,8 +479,8 @@ static float render_value_with_zeros(uint8_t value, float x, float y, color_t ze
 	render_text_t params = *text_params;
 	params.bounds_w = &w;
 
-	int significant = snprintf(buf, 8, "%u", value);
-	int num_zeros   = 3 - significant;
+	int8_t significant = snprintf(buf, 8, "%u", value);
+	int8_t num_zeros   = 3 - significant;
 	if (num_zeros > 0) {
 		snprintf(buf, 8, "%0*d", num_zeros, 0);
 		params.color = zeros;
@@ -534,7 +535,7 @@ static void resource_indicator_value_render(const resource_t* res, const indicat
 	render_value_max(res->value, res->max, tx, ty, params);
 }
 
-static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_y) {
+static void coordinates_render(float x, float y, int8_t tiles_x, int8_t tiles_y) {
 	render_sprite(assets_sprites()->travel_map.greek_letter_black_beta, x,         y);
 	render_sprite(assets_sprites()->travel_map.dice_5p_brown,           x + 32.0f, y);
 
@@ -551,10 +552,10 @@ static void coordinates_render(float x, float y, uint8_t tiles_x, uint8_t tiles_
 	x += 32.0f * 2 + 8.0f;
 	y += 16.0f;
 
-	const char* we = tiles_x <= 127 ? "W" : "E";
-	const char* ns = tiles_y <= 127 ? "N" : "S";
-	const int   dx = tiles_x <= 127 ? 128 - tiles_x : tiles_x - 127;
-	const int   dy = tiles_y <= 127 ? 128 - tiles_y : tiles_y - 127;
+	const char*   we = tiles_x <= 127 ? "W" : "E";
+	const char*   ns = tiles_y <= 127 ? "N" : "S";
+	const int32_t dx = tiles_x <= 127 ? 128 - tiles_x : tiles_x - 127;
+	const int32_t dy = tiles_y <= 127 ? 128 - tiles_y : tiles_y - 127;
 
 	text_params.color = render_color(255, 255, 255);
 	render_text(ns, x, y, &text_params);
@@ -674,7 +675,7 @@ static struct { uint8_t t; uint8_t c; } TERRAIN_CLASS[] = {
 	{ TERRAIN_WATER_DEEP,   TERRAIN_CLASS_WATER   },
 };
 
-static uint8_t get_terrain_class(uint32_t tx, uint32_t ty) {
+static uint8_t get_terrain_class(int32_t tx, int32_t ty) {
 	const size_t  N = sizeof(TERRAIN_CLASS) / sizeof(TERRAIN_CLASS[0]);
 	const uint8_t t = session_current()->world.locations[tx][ty].terrain;
 	for (size_t i = 0; i < N; ++i) {
@@ -683,7 +684,7 @@ static uint8_t get_terrain_class(uint32_t tx, uint32_t ty) {
 	return TERRAIN_CLASS_DEFAULT;
 }
 
-static size_t get_arrow_index(uint32_t tx0, uint32_t ty0, uint32_t tx1, uint32_t ty1) {
+static size_t get_arrow_index(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
 	assert(tx0 != tx1 || ty0 != ty1);
 
 	// n s w e
@@ -703,7 +704,7 @@ typedef struct {
 	float dx;
 	float dy;
 } arrow_t;
-static void get_arrow(uint32_t tx0, uint32_t ty0, uint32_t tx1, uint32_t ty1, arrow_t* out) {
+static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, arrow_t* out) {
 #define SPRITE(s)     assets_sprites()->travel_map.s
 #define DIR_SPRITE(s) SPRITE(direction_##s)
 #define DIRECTIONS(s) { DIR_SPRITE(north_##s), DIR_SPRITE(south_##s), DIR_SPRITE(west_##s), DIR_SPRITE(east_##s) }
@@ -751,7 +752,7 @@ static void get_arrow(uint32_t tx0, uint32_t ty0, uint32_t tx1, uint32_t ty1, ar
 	out->s = LOOKUP[0].arrows[a];
 }
 
-static const struct sprite_t* get_path_point(uint32_t tx, uint32_t ty) {
+static const struct sprite_t* get_path_point(int32_t tx, int32_t ty) {
 #define POINT(s) assets_sprites()->travel_map.point_##s
 	const struct {
 		uint8_t c;
@@ -804,14 +805,14 @@ static void path_render() {
 	path_render_arrow(px, py, s_ctx.steps[0].tx, s_ctx.steps[0].ty);
 
 	for (size_t i = 0; i < s_ctx.num_steps; ++i) {
-		const uint32_t tx0 = s_ctx.steps[i].tx;
-		const uint32_t ty0 = s_ctx.steps[i].ty;
-		const float    x   = ox + TILE * (tx0 - s_ctx.tile_x);
-		const float    y   = oy + TILE * (ty0 - s_ctx.tile_y);
+		const int32_t tx0 = s_ctx.steps[i].tx;
+		const int32_t ty0 = s_ctx.steps[i].ty;
+		const float   x   = ox + TILE * (tx0 - s_ctx.tile_x);
+		const float   y   = oy + TILE * (ty0 - s_ctx.tile_y);
 
 		if (i != s_ctx.num_steps - 1) {
-			const uint32_t tx1 = s_ctx.steps[i + 1].tx;
-			const uint32_t ty1 = s_ctx.steps[i + 1].ty;
+			const int32_t tx1 = s_ctx.steps[i + 1].tx;
+			const int32_t ty1 = s_ctx.steps[i + 1].ty;
 			path_render_arrow(tx0, ty0, tx1, ty1);
 		}
 
@@ -840,7 +841,7 @@ static void selector_render() {
 	render_sprite(assets_sprites()->common.selector_location, x, y);
 }
 
-static int8_t dir(uint32_t from, uint32_t to) {
+static int8_t dir(int32_t from, int32_t to) {
 	const int32_t d = to - from;
 	if (d >= 1) {
 		return 1;
@@ -866,7 +867,7 @@ static struct {
 	{  1,  1, 7 },
 };
 
-static uint8_t lookup_compass_sprite(uint32_t px, uint32_t py, uint32_t cx, uint32_t cy) {
+static uint8_t lookup_compass_sprite(int32_t px, int32_t py, int32_t cx, int32_t cy) {
 	const size_t NUM_SPRITES = sizeof(s_compass_lookup) / sizeof(s_compass_lookup[0]);
 
 	const int8_t dx = dir(cx, px);
@@ -882,10 +883,10 @@ static uint8_t lookup_compass_sprite(uint32_t px, uint32_t py, uint32_t cx, uint
 }
 
 static void compass_render() {
-	const uint32_t px = session_current()->player.x;
-	const uint32_t py = session_current()->player.y;
-	const uint32_t cx = s_ctx.tile_x + VIEW_TILES / 2;
-	const uint32_t cy = s_ctx.tile_y + VIEW_TILES / 2;
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
+	const int32_t cx = s_ctx.tile_x + VIEW_TILES / 2;
+	const int32_t cy = s_ctx.tile_y + VIEW_TILES / 2;
 
 	const int32_t tx = px - s_ctx.tile_x;
 	const int32_t ty = py - s_ctx.tile_y;
@@ -913,11 +914,11 @@ static void compass_render() {
 }
 
 static void player_render() {
-	const uint32_t px = session_current()->player.x;
-	const uint32_t py = session_current()->player.y;
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
 
-	const uint32_t tx = px - s_ctx.tile_x;
-	const uint32_t ty = py - s_ctx.tile_y;
+	const int32_t tx = px - s_ctx.tile_x;
+	const int32_t ty = py - s_ctx.tile_y;
 
 	if (tx >= s_ctx.tile_x && tx < s_ctx.tile_x + VIEW_TILES &&
 		ty >= s_ctx.tile_y && ty < s_ctx.tile_y + VIEW_TILES) {
