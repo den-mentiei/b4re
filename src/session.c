@@ -51,9 +51,6 @@ static void handle_state_resource(const api_state_resource_t* r, resource_t* out
 static void handle_state(const api_state_t* s) {
 	assert(s);
 
-	// TODO:
-	log_info("[session] t = %ul | %s at %d,%d", s->timestamp, s->player.username, s->player.x, s->player.y);
-
 	const size_t n = MIN(MAX_API_STRING_LENGTH, MAX_SESSION_STRING_LENGTH);
 	strncpy(s_ctx.current.player.username, s->player.username, n - 1);
 	s_ctx.current.player.username[n - 1] = 0;
@@ -105,12 +102,16 @@ void session_update(float dt) {
 					s_ctx.status = STATUS_AWAITING_STATE;
 					client_state();
 				} else {
-					log_error("[session] Got unexpected 'login' message.");
+					log_error("[session] Got unexpected 'login' message");
 				}
 				break;
 
 			case MESSAGE_TYPE_LOGOUT:
-				if (s_ctx.status == STATUS_AWAITING_LOGOUT) s_ctx.status = STATUS_NA;
+				if (s_ctx.status == STATUS_AWAITING_LOGOUT) {
+					s_ctx.status = STATUS_NA;
+				} else {
+					log_error("[session] Got unexpected 'logout' message");
+				}
 				break;
 
 			case MESSAGE_TYPE_STATE: {
@@ -120,9 +121,13 @@ void session_update(float dt) {
 			}
 
 			case MESSAGE_TYPE_MAP: {
-				// TODO:
-				api_map_t* m = (api_map_t*)msg->data;
-				log_info("[session] Got map for %u,%u", m->x, m->y);
+				if (s_ctx.status == STATUS_ACTIVE) {
+					// TODO:
+					api_map_t* m = (api_map_t*)msg->data;
+					log_info("[session] Got map for %u,%u", m->x, m->y);
+				} else {
+					log_error("[session] Got unexpected 'map' message");
+				}
 				break;
 			}
 

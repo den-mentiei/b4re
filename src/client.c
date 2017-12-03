@@ -9,6 +9,14 @@
 #include "allocator.h"
 #include "api.h"
 
+//#define USE_LOCAL_SERVER
+
+#if defined(DEBUG) && defined(USE_LOCAL_SERVER)
+	#define API_ROOT(s) "http://localhost:8080/api/"s
+#else
+	#define API_ROOT(s) "http://ancientlighthouse.com:8080/api/"s
+#endif
+
 #define RESPONSE_BUFFER_SIZE (8 * 1024)
 #define RESPONSE_MESSAGE_BUFFER_SIZE (8 * 1024)
 // Must be a power-of-two.
@@ -263,7 +271,7 @@ void client_login(const char* username, const char* password) {
 
 	p->response_type = MESSAGE_TYPE_LOGIN;
 	p->request_id    = http_post_form(
-		"http://ancientlighthouse.com:8080/api/login",
+		API_ROOT("login"),
 		form,
 		sizeof(form) / sizeof(form[0]),
 		p->response_buffer,
@@ -313,15 +321,44 @@ void client_move(uint8_t* coords, size_t count) {
 	assert(count > 0);
 }
 
-void client_map(uint32_t x, uint32_t y, uint8_t size) {
+void client_map(int32_t x, int32_t y, uint8_t size) {
 	assert(size > 0);
 	log_info("[client] Fetching map");
-/* 	http_get("http://ancientlighthouse.com:8080/api/map/homeland_3/0/0/12", http_handler, MAP_TAG); */
+
+	char url[128];
+	snprintf(url, sizeof(url), API_ROOT("map/homeland_3/%d/%d/%u"), x, y, size);
+
+	page_t* p = pages_alloc();
+
+#ifdef DEBUG
+	p->tag = "map";
+#endif
+
+	p->response_type = MESSAGE_TYPE_STATE;
+	p->request_id    = http_post(
+		url,
+		p->response_buffer,
+		RESPONSE_BUFFER_SIZE);
+
+	pages_put_in_work(p);
 }
 
 void client_reveal(uint32_t x, uint32_t y) {
 	log_info("[client] Revealing %u, %u", x, y);
-	char buf[128];
-	snprintf(buf, sizeof(buf), "http://ancientlighthouse.com:8080/api/reveal/%u/%u", x, y);
-	/* http_get(buf, http_handler, NULL); */
+	char url[128];
+	snprintf(url, sizeof(url), API_ROOT("reveal/%u/%u"), x, y);
+
+	page_t* p = pages_alloc();
+
+#ifdef DEBUG
+	p->tag = "reveal";
+#endif
+
+	p->response_type = MESSAGE_TYPE_REVEAL;
+	p->request_id    = http_post(
+		url,
+		p->response_buffer,
+		RESPONSE_BUFFER_SIZE);
+
+	pages_put_in_work(p);
 }
