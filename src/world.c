@@ -8,6 +8,8 @@
 #include "allocator.h"
 #include "api.h"
 
+// TODO: @optimize Store only up-to-date blocks as a hash-map over block coordinate.
+
 #define BLOCK_SIZE (1 << 5)
 #define NUM_BLOCKS (WORLD_PLANE_SIZE / BLOCK_SIZE)
 
@@ -51,6 +53,21 @@ struct world_t* world_create(struct allocator_t* alloc) {
     memset(w, 0, sizeof(world_t));
     w->alloc = alloc;
     return w;
+    
+    /*
+    for (size_t y = 0; y < WORLD_PLANE_SIZE; ++y) {
+        for (size_t x = 0; x < WORLD_PLANE_SIZE; ++x) {
+            if ((float)rand() / RAND_MAX > 0.5f) {
+                s_ctx.current.world.locations[x][y].has_data  = true;
+                s_ctx.current.world.locations[x][y].is_hidden = false;
+                s_ctx.current.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP);
+            } else {
+                 s_ctx.current.world.locations[x][y].has_data  = true;
+                 s_ctx.current.world.locations[x][y].is_hidden = true;
+            }
+        }
+    }
+    */
 }
 
 void world_free(struct world_t* w) {
@@ -95,7 +112,7 @@ void world_update_data(struct world_t* w, struct api_map_t* data) {
     }
 }
 
-bool world_is_hidden(struct world_t* w, int32_t x, int32_t y) {
+bool world_is_hidden(const struct world_t* w, int32_t x, int32_t y) {
     assert(w);
     assert(x >= 0 && x < WORLD_PLANE_SIZE);
     assert(y >= 0 && y < WORLD_PLANE_SIZE);
@@ -104,7 +121,7 @@ bool world_is_hidden(struct world_t* w, int32_t x, int32_t y) {
     return !w->has_data[bi.x][bi.y] || w->terrain[bi.x][bi.y].is_hidden;
 }
 
-uint8_t world_terrain(struct world_t* w, int32_t x, int32_t y) {
+uint8_t world_terrain(const struct world_t* w, int32_t x, int32_t y) {
     assert(w);
     assert(x >= 0 && x < WORLD_PLANE_SIZE);
     assert(y >= 0 && y < WORLD_PLANE_SIZE);

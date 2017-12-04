@@ -3,8 +3,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// TODO: @refactor Do *not* include!
-#include "world.h"
+struct allocator_t;
+struct world_t;
 
 typedef struct {
 	// Server time in seconds.
@@ -37,9 +37,11 @@ typedef struct {
 		char    username[MAX_SESSION_STRING_LENGTH];
 		uint8_t avatar;
 	} player;
+	
+	struct world_t* world;
 } session_t;
 
-void session_init();
+void session_init(struct allocator_t* alloc);
 void session_update(float dt);
 void session_shutdown();
 

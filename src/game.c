@@ -22,7 +22,7 @@ static struct {
 bool game_init(int32_t argc, const char* argv[]) {
 	assets_init();
 	client_init();
-	session_init();
+	session_init(allocator_main());
 
 	render_load_font("regular", "assets/fonts/Ancient_Lighthouse_Regular.otf");
 

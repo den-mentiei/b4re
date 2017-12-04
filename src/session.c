@@ -8,6 +8,7 @@
 #include "log.h"
 #include "client.h"
 #include "api.h"
+#include "world.h"
 
 #define AUTO_UPDATE_INTERVALS_MS 5000.0f
 
@@ -65,23 +66,8 @@ static void handle_state(const api_state_t* s) {
 // PUBLIC API
 // ==========
 
-void session_init() {
-	// TODO: Remove it.
-	for (size_t y = 0; y < WORLD_PLANE_SIZE; ++y) {
-		for (size_t x = 0; x < WORLD_PLANE_SIZE; ++x) {
-			//s_ctx.current.world.locations[x][y].has_data  = true;
-			//s_ctx.current.world.locations[x][y].is_hidden = false;
-			//s_ctx.current.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP);
-			/* if ((float)rand() / RAND_MAX > 0.5f) { */
-			/* 	s_ctx.current.world.locations[x][y].has_data  = true; */
-			/* 	s_ctx.current.world.locations[x][y].is_hidden = false; */
-			/* 	s_ctx.current.world.locations[x][y].terrain   = 1 + randi(TERRAIN_WATER_DEEP); */
-			/* } else { */
-			/* 	s_ctx.current.world.locations[x][y].has_data  = true; */
-			/* 	s_ctx.current.world.locations[x][y].is_hidden = true; */
-			/* } */
-		}
-	}
+void session_init(struct allocator_t* alloc) {
+	s_ctx.current.world = world_create(alloc);
 }
 
 void session_update(float dt) {
@@ -117,9 +103,9 @@ void session_update(float dt) {
 
 			case MESSAGE_TYPE_MAP: {
 				if (s_ctx.status == STATUS_ACTIVE) {
-					// TODO:
 					api_map_t* m = (api_map_t*)msg->data;
 					log_info("[session] Got map for %u,%u", m->x, m->y);
+					world_update_data(s_ctx.current.world, m);
 				} else {
 					log_error("[session] Got unexpected 'map' message");
 				}
@@ -139,12 +125,17 @@ void session_update(float dt) {
 		s_ctx.t -= dt;
 		if (s_ctx.t < 0.0f) {
 			s_ctx.t = AUTO_UPDATE_INTERVALS_MS;
-			client_state();
+			// TODO: @bug It fails after some fetches :(
+			// client_state();
 		}
+
+		if (s_ctx.current.world) world_update(s_ctx.current.world, dt);
 	}
 }
 
-void session_shutdown() {}
+void session_shutdown() {
+	if (s_ctx.current.world) world_free(s_ctx.current.world);
+}
 
 const session_t* session_current() {
 	return s_ctx.status == STATUS_ACTIVE ? &s_ctx.current : NULL;

@@ -270,9 +270,8 @@ static void map_view_update() {
 			if (path_contains(tx, ty)) {
 				// TODO: Split & walk.
 				log_info("[travel map] Walking to %d, %d", tx, ty);
-            // TODO:
-			/*} else if (session_current()->world.locations[tx][ty].is_hidden) {
-				session_reveal(tx, ty);*/
+			} else if (world_is_hidden(session_current()->world, tx, ty)) {
+				session_reveal(tx, ty);
 			} else {
 				s_ctx.selector_x = tx;
 				s_ctx.selector_y = ty;
@@ -320,8 +319,7 @@ static const struct sprite_t* lookup_terrain_sprite(uint8_t t) {
 }
 
 static void render_incognitta_shade(size_t tx, size_t ty, float x, float y) {
-    // TODO:
-#define LOOKUP(dx, dy) false/*session_current()->world.locations[tx + (dx)][ty + (dy)].is_hidden*/
+#define LOOKUP(dx, dy) world_is_hidden(session_current()->world, tx + (dx), ty + (dy))
 	if (tx == 0 || LOOKUP(-1, 0)) {
 		render_sprite(assets_sprites()->travel_map.shade_incognitta_left, x, y);
 	}
@@ -354,23 +352,21 @@ static void map_view_render() {
 			const size_t ty = s_ctx.tile_y + j;
 			const float  x  = ox + TILE * i;
 			const float  y  = oy + TILE * j;
+			
+            const bool is_hidden  = world_is_hidden(session_current()->world, tx, ty);
 
-			//const world_location_t* loc = &session_current()->world.locations[tx][ty];
-            // TODO: Use session world.
-            const bool loc_has_data   = false;
-            const bool loc_is_hidden  = true;
-            const uint8_t loc_terrain = 0;
-            
 			const render_tile_t test_tile = {
 				.tile_w = TILE,
 				.tile_h = TILE,
 				.tile_x = tx % 7,
 				.tile_y = ty % 7,
 			};
-			if (!loc_has_data || loc_is_hidden) {
+
+			if (is_hidden) {
 				render_tile(assets_sprites()->travel_map.atlas_tiled_warfog, x, y, &test_tile);
 			} else {
-				render_tile(lookup_terrain_sprite(loc_terrain), x, y, &test_tile);
+				const uint8_t terrain = world_terrain(session_current()->world, tx, ty);
+				render_tile(lookup_terrain_sprite(terrain), x, y, &test_tile);
 				render_incognitta_shade(tx, ty, x, y);
 			}
 
@@ -401,7 +397,7 @@ static void reveal_render() {
 		const float   x  = ox + TILE * (nx - s_ctx.tile_x) + TILE * 0.25f;
 		const float   y  = oy + TILE * (ny - s_ctx.tile_y) + TILE * 0.25f;
 		if (nx >= 0 && nx < WORLD_PLANE_SIZE && ny >= 0 && ny < WORLD_PLANE_SIZE &&
-			true)//session_current()->world.locations[nx][ny].is_hidden)
+			world_is_hidden(session_current()->world, nx, ny))
 		{
 			render_sprite(assets_sprites()->travel_map.eye_mind, x, y);
 		}
@@ -669,9 +665,8 @@ static struct { uint8_t t; uint8_t c; } TERRAIN_CLASS[] = {
 	{ TERRAIN_WATER_DEEP,   TERRAIN_CLASS_WATER   },
 };
 
-static uint8_t get_terrain_class(int32_t tx, int32_t ty) {
+static uint8_t get_terrain_class(uint8_t t) {
 	const size_t  N = sizeof(TERRAIN_CLASS) / sizeof(TERRAIN_CLASS[0]);
-    const uint8_t t = 0;//session_current()->world.locations[tx][ty].terrain;
 	for (size_t i = 0; i < N; ++i) {
 		if (TERRAIN_CLASS[i].t == t) return TERRAIN_CLASS[i].c;
 	}
@@ -698,6 +693,7 @@ typedef struct {
 	float dx;
 	float dy;
 } arrow_t;
+
 static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, arrow_t* out) {
 #define SPRITE(s)     assets_sprites()->travel_map.s
 #define DIR_SPRITE(s) SPRITE(direction_##s)
@@ -731,7 +727,8 @@ static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, arrow_
 
 	assert(out);
 
-	const uint8_t c = get_terrain_class(tx1, ty1);
+	const uint8_t t = world_terrain(session_current()->world, tx1, ty1);
+	const uint8_t c = get_terrain_class(t);
 	const size_t  a = get_arrow_index(tx0, ty0, tx1, ty1);
 
 	out->dx = ARROW_OFFSETS[a].dx;
@@ -763,7 +760,8 @@ static const struct sprite_t* get_path_point(int32_t tx, int32_t ty) {
 	};
 #undef POINT
 	const size_t  N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
-	const uint8_t c = get_terrain_class(tx, ty);
+	const uint8_t t = world_terrain(session_current()->world, tx, ty);
+	const uint8_t c = get_terrain_class(t);
 	for (size_t i = 0; i < N; ++i) {
 		if (LOOKUP[i].c == c) return LOOKUP[i].p;
 	}

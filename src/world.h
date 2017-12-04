@@ -46,5 +46,5 @@ void world_update(struct world_t* w, float dt);
 void world_update_data(struct world_t* w, struct api_map_t* data);
 
 // TODO: @optimize Add a request to get a map part (e.g. travel map needs one).
-bool    world_is_hidden(struct world_t* w, int32_t x, int32_t y);
-uint8_t world_terrain  (struct world_t* w, int32_t x, int32_t y);
+bool    world_is_hidden(const struct world_t* w, int32_t x, int32_t y);
+uint8_t world_terrain  (const struct world_t* w, int32_t x, int32_t y);
