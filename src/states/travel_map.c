@@ -270,8 +270,9 @@ static void map_view_update() {
 			if (path_contains(tx, ty)) {
 				// TODO: Split & walk.
 				log_info("[travel map] Walking to %d, %d", tx, ty);
-			} else if (session_current()->world.locations[tx][ty].is_hidden) {
-				session_reveal(tx, ty);
+            // TODO:
+			/*} else if (session_current()->world.locations[tx][ty].is_hidden) {
+				session_reveal(tx, ty);*/
 			} else {
 				s_ctx.selector_x = tx;
 				s_ctx.selector_y = ty;
@@ -319,7 +320,8 @@ static const struct sprite_t* lookup_terrain_sprite(uint8_t t) {
 }
 
 static void render_incognitta_shade(size_t tx, size_t ty, float x, float y) {
-#define LOOKUP(dx, dy) session_current()->world.locations[tx + (dx)][ty + (dy)].is_hidden
+    // TODO:
+#define LOOKUP(dx, dy) false/*session_current()->world.locations[tx + (dx)][ty + (dy)].is_hidden*/
 	if (tx == 0 || LOOKUP(-1, 0)) {
 		render_sprite(assets_sprites()->travel_map.shade_incognitta_left, x, y);
 	}
@@ -353,17 +355,22 @@ static void map_view_render() {
 			const float  x  = ox + TILE * i;
 			const float  y  = oy + TILE * j;
 
-			const world_location_t* loc = &session_current()->world.locations[tx][ty];
+			//const world_location_t* loc = &session_current()->world.locations[tx][ty];
+            // TODO: Use session world.
+            const bool loc_has_data   = false;
+            const bool loc_is_hidden  = true;
+            const uint8_t loc_terrain = 0;
+            
 			const render_tile_t test_tile = {
 				.tile_w = TILE,
 				.tile_h = TILE,
 				.tile_x = tx % 7,
 				.tile_y = ty % 7,
 			};
-			if (!loc->has_data || loc->is_hidden) {
+			if (!loc_has_data || loc_is_hidden) {
 				render_tile(assets_sprites()->travel_map.atlas_tiled_warfog, x, y, &test_tile);
 			} else {
-				render_tile(lookup_terrain_sprite(loc->terrain), x, y, &test_tile);
+				render_tile(lookup_terrain_sprite(loc_terrain), x, y, &test_tile);
 				render_incognitta_shade(tx, ty, x, y);
 			}
 
@@ -394,7 +401,7 @@ static void reveal_render() {
 		const float   x  = ox + TILE * (nx - s_ctx.tile_x) + TILE * 0.25f;
 		const float   y  = oy + TILE * (ny - s_ctx.tile_y) + TILE * 0.25f;
 		if (nx >= 0 && nx < WORLD_PLANE_SIZE && ny >= 0 && ny < WORLD_PLANE_SIZE &&
-			session_current()->world.locations[nx][ny].is_hidden)
+			true)//session_current()->world.locations[nx][ny].is_hidden)
 		{
 			render_sprite(assets_sprites()->travel_map.eye_mind, x, y);
 		}
@@ -664,7 +671,7 @@ static struct { uint8_t t; uint8_t c; } TERRAIN_CLASS[] = {
 
 static uint8_t get_terrain_class(int32_t tx, int32_t ty) {
 	const size_t  N = sizeof(TERRAIN_CLASS) / sizeof(TERRAIN_CLASS[0]);
-	const uint8_t t = session_current()->world.locations[tx][ty].terrain;
+    const uint8_t t = 0;//session_current()->world.locations[tx][ty].terrain;
 	for (size_t i = 0; i < N; ++i) {
 		if (TERRAIN_CLASS[i].t == t) return TERRAIN_CLASS[i].c;
 	}

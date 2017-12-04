@@ -1,9 +1,8 @@
 #pragma once
 
-// TODO: @optimize Introduce macroblocks, update/track time/store status per block,
-// rather per one location.
-
 #define WORLD_PLANE_SIZE 256
+
+// TODO: Move enums out.
 
 typedef enum {
 	TERRAIN_DEFAULT = 0,
@@ -32,13 +31,13 @@ typedef enum {
 	TERRAIN_CLASS_WATER,
 } world_terrain_class_t;
 
-typedef struct {
-	// TODO: @optimize Union?
-	uint8_t terrain;
-	bool    is_hidden;
-	bool    has_data;
-} world_location_t;
+// API SKETCH
 
-typedef struct {
-	world_location_t locations[WORLD_PLANE_SIZE][WORLD_PLANE_SIZE];
-} world_t;
+struct allocator_t;
+struct api_map_t;
+struct world_t;
+
+struct world_t* world_create(struct allocator_t* alloc);
+void world_free(struct world_t* w);
+void world_update(struct world_t* w, float dt);
+void world_update_data(struct world_t* w, struct api_map_t* data);

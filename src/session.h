@@ -37,8 +37,6 @@ typedef struct {
 		char    username[MAX_SESSION_STRING_LENGTH];
 		uint8_t avatar;
 	} player;
-
-	world_t world;
 } session_t;
 
 void session_init();

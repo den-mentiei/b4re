@@ -58,13 +58,13 @@ typedef struct {
 } api_state_t;
 
 #define API_MAP_PART_SIZE 12
-typedef struct {
+typedef struct api_map_t {
 	// TODO: @optimize Union?
 	struct {
 		uint8_t terrain;
 		bool    is_hidden;
 	} terrain[12][12];
-	uint32_t x, y;
+	int32_t x, y;
 } api_map_t;
 
 bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* state);
