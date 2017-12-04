@@ -20,13 +20,17 @@ typedef struct {
     bool    is_hidden : 1;
 } terrain_t;
 
+typedef struct {
+	terrain_t data[BLOCK_SIZE][BLOCK_SIZE];
+} block_t;
+
 typedef struct world_t {
     struct allocator_t* alloc;
 
     // In seconds.
-    float     age[NUM_BLOCKS][NUM_BLOCKS];
-    terrain_t terrain[NUM_BLOCKS][NUM_BLOCKS];
-    bool      has_data[NUM_BLOCKS][NUM_BLOCKS];
+    float   age[NUM_BLOCKS][NUM_BLOCKS];
+    block_t terrain[NUM_BLOCKS][NUM_BLOCKS];
+    bool    has_data[NUM_BLOCKS][NUM_BLOCKS];
 } world_t;
 
 typedef struct {
@@ -106,8 +110,8 @@ void world_update_data(struct world_t* w, struct api_map_t* data) {
             w->has_data[bi.x][bi.y] = true;
             w->age[bi.x][bi.y]      = 0.0f;
 
-            w->terrain[bi.x][bi.y].is_hidden = data->terrain[tx][ty].is_hidden;
-            w->terrain[bi.x][bi.y].type      = data->terrain[tx][ty].terrain;
+            w->terrain[bi.x][bi.y].data[bi.rx][bi.ry].is_hidden = data->terrain[tx][ty].is_hidden;
+            w->terrain[bi.x][bi.y].data[bi.rx][bi.ry].type      = data->terrain[tx][ty].terrain;
         }
     }
 }
@@ -118,7 +122,7 @@ bool world_is_hidden(const struct world_t* w, int32_t x, int32_t y) {
     assert(y >= 0 && y < WORLD_PLANE_SIZE);
     
     const block_index_t bi = to_block_index(x, y);
-    return !w->has_data[bi.x][bi.y] || w->terrain[bi.x][bi.y].is_hidden;
+    return !w->has_data[bi.x][bi.y] || w->terrain[bi.x][bi.y].data[bi.rx][bi.ry].is_hidden;
 }
 
 uint8_t world_terrain(const struct world_t* w, int32_t x, int32_t y) {
@@ -128,5 +132,5 @@ uint8_t world_terrain(const struct world_t* w, int32_t x, int32_t y) {
     assert(!world_is_hidden(w, x, y));
     
     const block_index_t bi = to_block_index(x, y);
-    return w->has_data[bi.x][bi.y] ? w->terrain[bi.x][bi.y].type : 0;
+    return w->has_data[bi.x][bi.y] ? w->terrain[bi.x][bi.y].data[bi.rx][bi.ry].type : 0;
 }
