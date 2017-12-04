@@ -94,3 +94,22 @@ void world_update_data(struct world_t* w, struct api_map_t* data) {
         }
     }
 }
+
+bool world_is_hidden(struct world_t* w, int32_t x, int32_t y) {
+    assert(w);
+    assert(x >= 0 && x < WORLD_PLANE_SIZE);
+    assert(y >= 0 && y < WORLD_PLANE_SIZE);
+    
+    const block_index_t bi = to_block_index(x, y);
+    return !w->has_data[bi.x][bi.y] || w->terrain[bi.x][bi.y].is_hidden;
+}
+
+uint8_t world_terrain(struct world_t* w, int32_t x, int32_t y) {
+    assert(w);
+    assert(x >= 0 && x < WORLD_PLANE_SIZE);
+    assert(y >= 0 && y < WORLD_PLANE_SIZE);
+    assert(!world_is_hidden(w, x, y));
+    
+    const block_index_t bi = to_block_index(x, y);
+    return w->has_data[bi.x][bi.y] ? w->terrain[bi.x][bi.y].type : 0;
+}
