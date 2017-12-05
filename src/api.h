@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 struct allocator_t;
@@ -57,15 +58,18 @@ typedef struct {
 	api_state_player_t player;
 } api_state_t;
 
-#define API_MAP_PART_SIZE 12
+typedef struct {
+	uint8_t type      : 7;
+	bool    is_hidden : 1;
+} api_map_terrain_t;
+
 typedef struct api_map_t {
-	// TODO: @optimize Union?
-	struct {
-		uint8_t terrain;
-		bool    is_hidden;
-	} terrain[12][12];
 	int32_t x, y;
+	size_t  size;
+
+	api_map_terrain_t data[];
 } api_map_t;
 
 bool api_parse_state(struct allocator_t* alloc, const char* data, api_state_t* state);
+// TODO: @robustness Pass available buffer size.
 bool api_parse_map(struct allocator_t* alloc, const char* data, api_map_t* map);

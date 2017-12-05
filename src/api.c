@@ -1,7 +1,6 @@
 #include "api.h"
 
 #include <assert.h>
-#include <stddef.h>
 #include <string.h> // strcmp
 
 #include "log.h"
@@ -124,20 +123,26 @@ bool api_parse_map(struct allocator_t* alloc, const char* data, api_map_t* map) 
 	struct json_t* json = json_parse(alloc, data);
 	if (!json) return false;
 
-	map->x = NUMBER_PROPERTY(json, 0, "x");
-	map->y = NUMBER_PROPERTY(json, 0, "y");
+	map->x    = NUMBER_PROPERTY(json, 0, "x");
+	map->y    = NUMBER_PROPERTY(json, 0, "y");
 
 	const json_iterator_t locations = json_property(json, 0, "map");
 
-	const size_t n = json_array_size(json, locations);
+	const size_t N = json_array_size(json, locations);
+	map->size = N;
 	
-	for (size_t j = 0; j < n; ++j) {
-		const json_iterator_t row      = json_array_value(json, locations, j);
-		const size_t          row_size = json_array_size(json, row);
-		for (size_t i = 0; i < row_size; ++i) {
-			const json_iterator_t loc = json_array_value(json, row, j);
+	api_map_terrain_t* terrain = map->data;
+
+	for (size_t y = 0; y < N; ++y) {
+		const json_iterator_t row      = json_array_value(json, locations, y);
+		assert(json_array_size(json, row) == N);
+
+		for (size_t x = 0; x < N; ++x) {
+			const json_iterator_t loc = json_array_value(json, row, x);
 			
-			bool is_hidden = false;
+			bool    is_hidden = false;
+			uint8_t type      = 0;
+
 			if (json_has_property(json, loc, "hidden")) {
 				is_hidden = BOOL_PROPERTY(json, loc, "hidden");
 			}
@@ -145,12 +150,13 @@ bool api_parse_map(struct allocator_t* alloc, const char* data, api_map_t* map) 
 			if (!is_hidden) {
 				char terrain_id[MAX_API_STRING_LENGTH];
 				STRING_PROPERTY(json, loc, "static_id", terrain_id);
-
-				map->terrain[i][j].is_hidden = false;
-				map->terrain[i][j].terrain   = parse_terrain(terrain_id);
-			} else {
-				map->terrain[i][j].is_hidden = true;
+				type = parse_terrain(terrain_id);
 			}
+
+			terrain->is_hidden = is_hidden;
+			terrain->type      = type;
+
+			++terrain;
 		}
 	}
 
