@@ -43,7 +43,7 @@ struct world_t;
 struct world_t* world_create(struct allocator_t* alloc);
 void world_free(struct world_t* w);
 void world_update(struct world_t* w, float dt);
-void world_update_data(struct world_t* w, struct api_map_t* data);
+void world_update_data(struct world_t* w, const struct api_map_t* map);
 
 // TODO: @optimize Add a request to get a map part (e.g. travel map needs one).
 bool    world_is_hidden(const struct world_t* w, int32_t x, int32_t y);

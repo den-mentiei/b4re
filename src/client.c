@@ -17,8 +17,8 @@
 	#define API_ENDPOINT(s) "http://ancientlighthouse.com:8080/api/"s
 #endif
 
-#define RESPONSE_BUFFER_SIZE (8 * 1024)
-#define RESPONSE_MESSAGE_BUFFER_SIZE (8 * 1024)
+#define RESPONSE_BUFFER_SIZE (4 * 8 * 1024)
+#define RESPONSE_MESSAGE_BUFFER_SIZE (4 * 8 * 1024)
 // Must be a power-of-two.
 #define MAX_PAGES  16
 #define ITEMS_MASK (MAX_PAGES - 1)
@@ -85,6 +85,8 @@ void handle_state(const void* response, void* out_msg) {
 void handle_map(const void* response, void* out_msg) {
 	assert(response);
 	assert(out_msg);
+
+	api_parse_map(allocator_main(), response, out_msg);
 }
 
 void handle_reveal(const void* response, void* out_msg) {

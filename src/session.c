@@ -10,7 +10,7 @@
 #include "api.h"
 #include "world.h"
 
-#define AUTO_UPDATE_INTERVALS_MS 5000.0f
+#define AUTO_UPDATE_INTERVALS_MS 5000.0f * 100
 
 typedef enum {
 	STATUS_NA = 0,
@@ -125,8 +125,7 @@ void session_update(float dt) {
 		s_ctx.t -= dt;
 		if (s_ctx.t < 0.0f) {
 			s_ctx.t = AUTO_UPDATE_INTERVALS_MS;
-			// TODO: @bug It fails after some fetches :(
-			// client_state();
+			client_state();
 		}
 
 		if (s_ctx.current.world) world_update(s_ctx.current.world, dt);
