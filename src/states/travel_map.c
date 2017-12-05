@@ -26,18 +26,23 @@ static const float  SCREEN_SIZE      = 8    * TILE;
 
 #define MAX_PATH_LENGTH 100
 
+typedef struct {
+	int32_t tx;
+	int32_t ty;
+	uint8_t class;
+	uint8_t chain;
+	uint8_t price;
+	uint8_t total;
+} path_step_t;
+
 static struct {
 	float   map_x;
 	float   map_y;
 	int32_t tile_x;
 	int32_t tile_y;
 
-	size_t num_steps;
-	struct {
-		int32_t tx;
-		int32_t ty;
-		uint8_t price;
-	} steps[MAX_PATH_LENGTH];
+	size_t      num_steps;
+	path_step_t steps[MAX_PATH_LENGTH];
 
 	int32_t selector_x;
 	int32_t selector_y;
@@ -89,6 +94,62 @@ static bool is_tile_dragged(int32_t tx, int32_t ty) {
 	return false;
 }
 
+// TERRAIN CLASSES
+// ===============
+
+static const struct {
+	uint8_t t;
+	uint8_t c;
+} TERRAIN_CLASS[] = {
+	{ TERRAIN_DEFAULT,      TERRAIN_CLASS_DEFAULT },
+	{ TERRAIN_ROCK_WATER,   TERRAIN_CLASS_ROCK    },
+	{ TERRAIN_ROCK_SOLID,   TERRAIN_CLASS_ROCK    },
+	{ TERRAIN_ROCK,         TERRAIN_CLASS_ROCK    },
+	{ TERRAIN_ROCK_SAND,    TERRAIN_CLASS_ROCK    },
+	{ TERRAIN_WILD,         TERRAIN_CLASS_WILD    },
+	{ TERRAIN_GRASS,        TERRAIN_CLASS_GRASS   },
+	{ TERRAIN_EARTH,        TERRAIN_CLASS_EARTH   },
+	{ TERRAIN_CLAY,         TERRAIN_CLASS_CLAY    },
+	{ TERRAIN_SAND,         TERRAIN_CLASS_SAND    },
+	{ TERRAIN_WATER,        TERRAIN_CLASS_WATER   },
+	{ TERRAIN_WATER_BOTTOM, TERRAIN_CLASS_WATER   },
+	{ TERRAIN_WATER_DEEP,   TERRAIN_CLASS_WATER   },
+};
+
+typedef struct {
+	uint8_t c;
+	uint8_t price_matter;
+	uint8_t price_matter_penalty;
+} path_price_t;
+
+static const path_price_t
+TERRAIN_PRICE[] = {
+	{ TERRAIN_CLASS_DEFAULT, 1, 0 },
+	{ TERRAIN_CLASS_ROCK,    5, 0 },
+	{ TERRAIN_CLASS_WILD,    2, 0 },
+	{ TERRAIN_CLASS_GRASS,   1, 0 },
+	{ TERRAIN_CLASS_EARTH,   1, 0 },
+	{ TERRAIN_CLASS_CLAY,    1, 0 },
+	{ TERRAIN_CLASS_SAND,    4, 0 },
+	{ TERRAIN_CLASS_WATER,   1, 1 },
+};
+
+static uint8_t terrain_get_class(uint8_t t) {
+	const size_t  N = sizeof(TERRAIN_CLASS) / sizeof(TERRAIN_CLASS[0]);
+	for (size_t i = 0; i < N; ++i) {
+		if (TERRAIN_CLASS[i].t == t) return TERRAIN_CLASS[i].c;
+	}
+	return TERRAIN_CLASS_DEFAULT;
+}
+
+static path_price_t terrain_get_price(uint8_t class) {
+	const size_t N = sizeof(TERRAIN_PRICE) / sizeof(TERRAIN_PRICE[0]);
+	for (size_t i = 0; i < N; ++i) {
+		if (TERRAIN_PRICE[i].c == class) return TERRAIN_PRICE[i];
+	}
+	return TERRAIN_PRICE[0];
+}
+
 // PATH MANAGEMENT
 // ===============
 
@@ -123,13 +184,60 @@ static bool path_reset_to(int32_t tx, int32_t ty) {
 	return false;
 }
 
+static path_price_t path_get_price(int32_t tx, int32_t ty) {
+	const uint8_t t = world_terrain(session_current()->world, tx, ty);
+	const uint8_t c = terrain_get_class(t);
+	return terrain_get_price(c);
+}
+
+static void path_step_new(int32_t tx, int32_t ty) {
+	const int32_t px = session_current()->player.x;
+	const int32_t py = session_current()->player.y;
+	const int32_t sx = s_ctx.num_steps > 0 ? s_ctx.steps[s_ctx.num_steps - 1].tx : px;
+	const int32_t sy = s_ctx.num_steps > 0 ? s_ctx.steps[s_ctx.num_steps - 1].ty : py;
+
+	const path_price_t previous = path_get_price(sx, sy);
+	const path_price_t current  = path_get_price(tx, ty);
+
+	path_step_t last_step;
+	if (s_ctx.num_steps > 0) {
+		last_step = s_ctx.steps[s_ctx.num_steps - 1];
+	} else {
+		last_step.tx    = px;
+		last_step.tx    = py;
+		last_step.class = previous.c;
+		last_step.chain = 0;
+		last_step.price = 0;
+		last_step.total = 0;
+	}
+
+	int8_t total = last_step.total;
+	int8_t price = current.price_matter;
+	int8_t chain = 1;
+
+	if (current.price_matter_penalty > 0) {
+		chain = last_step.chain;
+		if (previous.c == current.c) {
+			price += current.price_matter_penalty * chain;
+			++chain;
+		}
+	}
+	total += price;
+
+	// TODO: Validation.
+
+	s_ctx.steps[s_ctx.num_steps].tx    = tx;
+	s_ctx.steps[s_ctx.num_steps].ty    = ty;
+	s_ctx.steps[s_ctx.num_steps].class = current.c;
+	s_ctx.steps[s_ctx.num_steps].chain = chain;
+	s_ctx.steps[s_ctx.num_steps].price = price;
+	s_ctx.steps[s_ctx.num_steps].total = total;
+	++s_ctx.num_steps;
+}
+
 static void path_step(int32_t tx, int32_t ty) {
 	if (!path_reset_to(tx, ty)) {
-		// TODO: Calculate price, validate it, etc.
-		s_ctx.steps[s_ctx.num_steps].tx    = tx;
-		s_ctx.steps[s_ctx.num_steps].ty    = ty;
-		s_ctx.steps[s_ctx.num_steps].price = 1;
-		++s_ctx.num_steps;
+		path_step_new(tx, ty);
 	}
 }
 
@@ -649,30 +757,6 @@ static void resources_render() {
 	resource_indicator_value_render(matter, &matter_rendering, 512.0f - 32.0f, 512.0f - 32.0f, true);
 }
 
-static struct { uint8_t t; uint8_t c; } TERRAIN_CLASS[] = {
-	{ TERRAIN_DEFAULT,      TERRAIN_CLASS_DEFAULT },
-	{ TERRAIN_ROCK_WATER,   TERRAIN_CLASS_ROCK    },
-	{ TERRAIN_ROCK_SOLID,   TERRAIN_CLASS_ROCK    },
-	{ TERRAIN_ROCK,         TERRAIN_CLASS_ROCK    },
-	{ TERRAIN_ROCK_SAND,    TERRAIN_CLASS_ROCK    },
-	{ TERRAIN_WILD,         TERRAIN_CLASS_WILD    },
-	{ TERRAIN_GRASS,        TERRAIN_CLASS_GRASS   },
-	{ TERRAIN_EARTH,        TERRAIN_CLASS_EARTH   },
-	{ TERRAIN_CLAY,         TERRAIN_CLASS_CLAY    },
-	{ TERRAIN_SAND,         TERRAIN_CLASS_SAND    },
-	{ TERRAIN_WATER,        TERRAIN_CLASS_WATER   },
-	{ TERRAIN_WATER_BOTTOM, TERRAIN_CLASS_WATER   },
-	{ TERRAIN_WATER_DEEP,   TERRAIN_CLASS_WATER   },
-};
-
-static uint8_t get_terrain_class(uint8_t t) {
-	const size_t  N = sizeof(TERRAIN_CLASS) / sizeof(TERRAIN_CLASS[0]);
-	for (size_t i = 0; i < N; ++i) {
-		if (TERRAIN_CLASS[i].t == t) return TERRAIN_CLASS[i].c;
-	}
-	return TERRAIN_CLASS_DEFAULT;
-}
-
 static size_t get_arrow_index(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
 	assert(tx0 != tx1 || ty0 != ty1);
 
@@ -728,7 +812,7 @@ static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, arrow_
 	assert(out);
 
 	const uint8_t t = world_terrain(session_current()->world, tx1, ty1);
-	const uint8_t c = get_terrain_class(t);
+	const uint8_t c = terrain_get_class(t);
 	const size_t  a = get_arrow_index(tx0, ty0, tx1, ty1);
 
 	out->dx = ARROW_OFFSETS[a].dx;
@@ -761,7 +845,7 @@ static const struct sprite_t* get_path_point(int32_t tx, int32_t ty) {
 #undef POINT
 	const size_t  N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
 	const uint8_t t = world_terrain(session_current()->world, tx, ty);
-	const uint8_t c = get_terrain_class(t);
+	const uint8_t c = terrain_get_class(t);
 	for (size_t i = 0; i < N; ++i) {
 		if (LOOKUP[i].c == c) return LOOKUP[i].p;
 	}
@@ -809,7 +893,7 @@ static void path_render() {
 		}
 
 		char buf[64];
-		snprintf(buf, sizeof(buf), "%hhu", s_ctx.steps[i].price);
+		snprintf(buf, sizeof(buf), "%hhu", s_ctx.steps[i].total);
 		const struct sprite_t* p = get_path_point(tx0, ty0);
 		render_sprite(p, x + TILE * 0.25f, y + TILE * 0.25f);
 		render_text(buf, x + TILE * 0.5f,  y + TILE * 0.5f - 1.0f, &TEXT);
