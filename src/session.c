@@ -10,7 +10,7 @@
 #include "api.h"
 #include "world.h"
 
-#define AUTO_UPDATE_INTERVALS_MS 5000.0f * 100
+#define AUTO_UPDATE_INTERVALS_MS 5000.0f
 
 typedef enum {
 	STATUS_NA = 0,
@@ -73,7 +73,6 @@ void session_init(struct allocator_t* alloc) {
 void session_update(float dt) {
 	message_t* msg;
 	while (client_messages_peek(&msg)) {
-		log_info("[session] Got a message!");
 		switch (msg->type) {
 			case MESSAGE_TYPE_NOOP:
 				break;
@@ -104,7 +103,6 @@ void session_update(float dt) {
 			case MESSAGE_TYPE_MAP: {
 				if (s_ctx.status == STATUS_ACTIVE) {
 					api_map_t* m = (api_map_t*)msg->data;
-					log_info("[session] Got map for %u,%u", m->x, m->y);
 					world_update_data(s_ctx.current.world, m);
 				} else {
 					log_error("[session] Got unexpected 'map' message");

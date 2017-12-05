@@ -59,15 +59,10 @@ static block_index_t to_block_index(int32_t x, int32_t y) {
 	return (block_index_t) { .x = bx, .y = by, .rx = rx, .ry = ry };
 }
 
-#include "log.h"
-
 static void block_requested(struct world_t* w, block_index_t bi) {
 	assert(w);
 
-	if (w->state[bi.x][bi.y] == BLOCK_STATE_NA) {
-		log_info("[world] BLOCK %d,%d IS NEEDED", bi.x, bi.y);
-		w->state[bi.x][bi.y] = BLOCK_STATE_NEEDED;
-	}
+	if (w->state[bi.x][bi.y] == BLOCK_STATE_NA) w->state[bi.x][bi.y] = BLOCK_STATE_NEEDED;
 }
 
 // PUBLIC API
@@ -97,7 +92,6 @@ void world_update(struct world_t* w, float dt) {
 
 				case BLOCK_STATE_NEEDED:
 					client_map(i * BLOCK_SIZE, j * BLOCK_SIZE, BLOCK_SIZE);
-					log_info("[world] BLOCK %d,%d IS REQD", i, j);
 					w->state[i][j] = BLOCK_STATE_REQUESTED;
 					break;
 
