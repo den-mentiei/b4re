@@ -31,8 +31,8 @@ typedef struct {
 	int32_t ty;
 	uint8_t class;
 	uint8_t chain;
-	uint8_t price;
-	uint8_t total;
+	uint8_t total   : 7;
+	bool    is_hard : 1;
 } path_step_t;
 
 static struct {
@@ -203,35 +203,37 @@ static void path_step_new(int32_t tx, int32_t ty) {
 	if (s_ctx.num_steps > 0) {
 		last_step = s_ctx.steps[s_ctx.num_steps - 1];
 	} else {
-		last_step.tx    = px;
-		last_step.tx    = py;
-		last_step.class = previous.c;
-		last_step.chain = 0;
-		last_step.price = 0;
-		last_step.total = 0;
+		last_step.tx      = px;
+		last_step.tx      = py;
+		last_step.class   = previous.c;
+		last_step.chain   = 0;
+		last_step.total   = 0;
+		last_step.is_hard = 0;
 	}
 
 	int8_t total = last_step.total;
 	int8_t price = current.price_matter;
 	int8_t chain = 1;
+	bool is_hard = false;
 
 	if (current.price_matter_penalty > 0) {
 		chain = last_step.chain;
 		if (previous.c == current.c) {
 			price += current.price_matter_penalty * chain;
 			++chain;
+			is_hard = chain > 1;
 		}
 	}
 	total += price;
 
 	// TODO: Validation.
 
-	s_ctx.steps[s_ctx.num_steps].tx    = tx;
-	s_ctx.steps[s_ctx.num_steps].ty    = ty;
-	s_ctx.steps[s_ctx.num_steps].class = current.c;
-	s_ctx.steps[s_ctx.num_steps].chain = chain;
-	s_ctx.steps[s_ctx.num_steps].price = price;
-	s_ctx.steps[s_ctx.num_steps].total = total;
+	s_ctx.steps[s_ctx.num_steps].tx      = tx;
+	s_ctx.steps[s_ctx.num_steps].ty      = ty;
+	s_ctx.steps[s_ctx.num_steps].class   = current.c;
+	s_ctx.steps[s_ctx.num_steps].chain   = chain;
+	s_ctx.steps[s_ctx.num_steps].total   = total;
+	s_ctx.steps[s_ctx.num_steps].is_hard = is_hard;
 	++s_ctx.num_steps;
 }
 
@@ -778,15 +780,18 @@ typedef struct {
 	float dy;
 } arrow_t;
 
-static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, arrow_t* out) {
+static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, bool use_hard, arrow_t* out) {
 #define SPRITE(s)     assets_sprites()->travel_map.s
 #define DIR_SPRITE(s) SPRITE(direction_##s)
 #define DIRECTIONS(s) { DIR_SPRITE(north_##s), DIR_SPRITE(south_##s), DIR_SPRITE(west_##s), DIR_SPRITE(east_##s) }
-	const struct {
+
+	typedef struct {
 		uint8_t c;
 		// n s w e
 		const struct sprite_t* arrows[4];
-	} LOOKUP[] = {
+	} arrow_sprites_t;
+
+	const arrow_sprites_t LOOKUP_NORMAL[] = {
 		{ TERRAIN_CLASS_DEFAULT, DIRECTIONS(rock)  },
 		{ TERRAIN_CLASS_ROCK,    DIRECTIONS(rock)  },
 		{ TERRAIN_CLASS_WILD,    DIRECTIONS(wild)  },
@@ -796,13 +801,24 @@ static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, arrow_
 		{ TERRAIN_CLASS_SAND,    DIRECTIONS(sand)  },
 		{ TERRAIN_CLASS_WATER,   DIRECTIONS(water) },
 	};
-	const size_t N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
+	const size_t NUM_NORMAL = sizeof(LOOKUP_NORMAL) / sizeof(LOOKUP_NORMAL[0]);
+
+	const arrow_sprites_t LOOKUP_HARD[] = {
+		{ TERRAIN_CLASS_DEFAULT, DIRECTIONS(rock)  },
+		{ TERRAIN_CLASS_WATER,   DIRECTIONS(water_hard) },
+	};
+	const size_t NUM_HARD = sizeof(LOOKUP_HARD) / sizeof(LOOKUP_HARD[0]);
+
 #undef SPRITE
 #undef DIR_SPRITE
 #undef DIRECTIONS
 
+	const arrow_sprites_t* LOOKUP = use_hard ? LOOKUP_HARD : LOOKUP_NORMAL;
+	const size_t N = use_hard ? NUM_HARD : NUM_NORMAL;
+
 	// n s w e
-	const struct { float dx; float dy; } ARROW_OFFSETS[] = {
+	const struct { float dx; float dy; }
+	ARROW_OFFSETS[] = {
 		{  0.0f,        -TILE * 0.5f },
 		{  0.0f,         TILE * 0.5f },
 		{ -TILE * 0.5f,  0.0f },
@@ -852,14 +868,14 @@ static const struct sprite_t* get_path_point(int32_t tx, int32_t ty) {
 	return LOOKUP[0].p;
 }
 
-static void path_render_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1) {
+static void path_render_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, bool use_hard) {
 	const float ox = VIEW_OFFSET + s_ctx.map_x;
 	const float oy = VIEW_OFFSET + s_ctx.map_y;
 	const float x  = ox + TILE * (tx0 - s_ctx.tile_x);
 	const float y  = oy + TILE * (ty0 - s_ctx.tile_y);
 
 	arrow_t arrow;
-	get_arrow(tx0, ty0, tx1, ty1, &arrow);
+	get_arrow(tx0, ty0, tx1, ty1, use_hard, &arrow);
 	render_sprite(arrow.s, x + arrow.dx, y + arrow.dy);
 }
 
@@ -878,7 +894,7 @@ static void path_render() {
 
 	const int32_t px = session_current()->player.x;
 	const int32_t py = session_current()->player.y;
-	path_render_arrow(px, py, s_ctx.steps[0].tx, s_ctx.steps[0].ty);
+	path_render_arrow(px, py, s_ctx.steps[0].tx, s_ctx.steps[0].ty, false);
 
 	for (size_t i = 0; i < s_ctx.num_steps; ++i) {
 		const int32_t tx0 = s_ctx.steps[i].tx;
@@ -887,9 +903,10 @@ static void path_render() {
 		const float   y   = oy + TILE * (ty0 - s_ctx.tile_y);
 
 		if (i != s_ctx.num_steps - 1) {
-			const int32_t tx1 = s_ctx.steps[i + 1].tx;
-			const int32_t ty1 = s_ctx.steps[i + 1].ty;
-			path_render_arrow(tx0, ty0, tx1, ty1);
+			const int32_t tx1  = s_ctx.steps[i + 1].tx;
+			const int32_t ty1  = s_ctx.steps[i + 1].ty;
+			const bool is_hard = s_ctx.steps[i + 1].is_hard;
+			path_render_arrow(tx0, ty0, tx1, ty1, is_hard);
 		}
 
 		char buf[64];
