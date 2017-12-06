@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 #include <stdbool.h>
 
 struct allocator_t;
@@ -47,7 +48,10 @@ void session_shutdown();
 
 const session_t* session_current();
 
+// TODO: Remove it and let code directly use client_ stuff (rename it to commands or whatever).
+
 void session_start(const char* username, const char* password);
 void session_end();
-
-void session_reveal(uint32_t x, uint32_t y);
+void session_reveal(int32_t x, int32_t y);
+typedef struct { int32_t tx; int32_t ty; } session_step_t;
+void session_move(const session_step_t* steps, size_t count);

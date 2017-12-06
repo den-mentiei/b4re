@@ -149,7 +149,15 @@ void session_end() {
 	client_logout();
 }
 
-void session_reveal(uint32_t x, uint32_t y) {
+void session_reveal(int32_t x, int32_t y) {
 	assert(s_ctx.status == STATUS_ACTIVE);
 	client_reveal(x, y);
+}
+
+void session_move(const session_step_t* steps, size_t count) {
+	assert(s_ctx.status == STATUS_ACTIVE);
+	assert(steps);
+	assert(count > 0);
+
+	client_move(&steps[0].tx, count);
 }

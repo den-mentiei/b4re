@@ -25,7 +25,7 @@ void client_update(float dt);
 void client_login(const char* username, const char* password);
 void client_logout();
 void client_state();
-void client_move(uint8_t* coords, size_t count);
+void client_move(const int32_t* coords, size_t count);
 void client_map(int32_t x, int32_t y, uint8_t size);
 void client_reveal(int32_t x, int32_t y);
 

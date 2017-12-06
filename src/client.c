@@ -9,6 +9,8 @@
 #include "allocator.h"
 #include "api.h"
 
+// TODO: Handle too-much-requests!
+
 /* #define USE_LOCAL_SERVER */
 
 #if defined(DEBUG) && defined(USE_LOCAL_SERVER)
@@ -156,12 +158,22 @@ static void pages_init() {
 	}
 }
 
-static page_t* pages_alloc() {
+static page_t* pages_alloc(uint8_t type, const char* tag) {
 	assert(s_ctx.pages_free < MAX_PAGES);
 
 	const size_t f = s_ctx.pages_free;
 	s_ctx.pages_free = s_ctx.pages[f].next;
-	return &s_ctx.pages[f];
+
+	page_t* p = &s_ctx.pages[f];
+	p->response_type = type;
+
+#ifdef DEBUG
+	p->tag = tag;
+#else
+	(void)tag;
+#endif
+
+	return p;
 }
 
 static void pages_free(page_t* p) {
@@ -231,42 +243,34 @@ static void pages_update() {
 
 static void api_get(const char* url, uint8_t type, const char* tag) {
 	assert(url);
-	assert(tag);
 
-	page_t* p = pages_alloc();
-
-#ifdef DEBUG
-	p->tag = tag;
-#else
-	(void)tag;
-#endif
-
-	p->response_type = type;
-	p->request_id    = http_get(url, p->response_buffer, RESPONSE_BUFFER_SIZE);
+	page_t* p     = pages_alloc(type, tag);
+	p->request_id = http_get(url, p->response_buffer, RESPONSE_BUFFER_SIZE);
 
 	pages_put_in_work(p);
 }
 
 static void api_post_form(const char* url, const http_form_part_t* parts, size_t num_parts, uint8_t type, const char* tag) {
 	assert(url);
-	assert(tag);
 
-	page_t* p = pages_alloc();
-
-#ifdef DEBUG
-	p->tag = tag;
-#else
-	(void)tag;
-#endif
-
-	p->response_type = type;
-	p->request_id    = http_post_form(url, parts, num_parts, p->response_buffer, RESPONSE_BUFFER_SIZE);
+	page_t* p     = pages_alloc(type, tag);
+	p->request_id = http_post_form(url, parts, num_parts, p->response_buffer, RESPONSE_BUFFER_SIZE);
 
 	pages_put_in_work(p);
 }
 
 static void api_post(const char* url, uint8_t type, const char* tag) {
 	api_post_form(url, NULL, 0, type, tag);
+}
+
+static void api_post_json(const char* url, const char* payload, uint8_t type, const char* tag) {
+	assert(url);
+	assert(payload);
+
+	page_t* p     = pages_alloc(type, tag);
+	p->request_id = http_post_json(url, payload, p->response_buffer, RESPONSE_BUFFER_SIZE);
+
+	pages_put_in_work(p);
 }
 
 // PUBLIC API
@@ -321,11 +325,22 @@ void client_state() {
 	api_get(API_ENDPOINT("state"), MESSAGE_TYPE_STATE, "state");
 }
 
-void client_move(uint8_t* coords, size_t count) {
+void client_move(const int32_t* coords, size_t count) {
 	assert(coords);
 	assert(count > 0);
 	
-	// TODO:
+	char buffer[512];
+	size_t rest = 512;
+
+	// TODO: Overflow validation.
+
+	rest -= snprintf(buffer + (512 - rest), 512, "[ { \"x\": %d, \"y\": %d }\n", coords[0], coords[1]);
+	for (size_t i = 1; i < count; ++i) {
+		rest -= snprintf(buffer + (512 - rest), rest, ", { \"x\": %d, \"y\": %d }\n", coords[i * 2], coords[i * 2 + 1]);
+	}
+	snprintf(buffer + (512 - rest), rest, "]");
+	
+	api_post_json(API_ENDPOINT("move"), buffer, MESSAGE_TYPE_NOOP, "move");
 }
 
 void client_map(int32_t x, int32_t y, uint8_t size) {
