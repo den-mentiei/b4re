@@ -27,13 +27,11 @@ static const float  SCREEN_SIZE      = 8    * TILE;
 #define MAX_PATH_LENGTH 100
 
 typedef struct {
-	int32_t tx;
-	int32_t ty;
 	uint8_t class;
 	uint8_t chain;
 	uint8_t total   : 7;
 	bool    is_hard : 1;
-} path_step_t;
+} path_step_info_t;
 
 static struct {
 	float   map_x;
@@ -41,8 +39,9 @@ static struct {
 	int32_t tile_x;
 	int32_t tile_y;
 
-	size_t      num_steps;
-	path_step_t steps[MAX_PATH_LENGTH];
+	size_t           num_steps;
+	path_step_info_t steps_info[MAX_PATH_LENGTH];
+	session_step_t   steps[MAX_PATH_LENGTH];
 
 	int32_t selector_x;
 	int32_t selector_y;
@@ -199,12 +198,10 @@ static void path_step_new(int32_t tx, int32_t ty) {
 	const path_price_t previous = path_get_price(sx, sy);
 	const path_price_t current  = path_get_price(tx, ty);
 
-	path_step_t last_step;
+	path_step_info_t last_step;
 	if (s_ctx.num_steps > 0) {
-		last_step = s_ctx.steps[s_ctx.num_steps - 1];
+		last_step = s_ctx.steps_info[s_ctx.num_steps - 1];
 	} else {
-		last_step.tx      = px;
-		last_step.tx      = py;
 		last_step.class   = previous.c;
 		last_step.chain   = 0;
 		last_step.total   = 0;
@@ -228,12 +225,14 @@ static void path_step_new(int32_t tx, int32_t ty) {
 
 	// TODO: Validation.
 
-	s_ctx.steps[s_ctx.num_steps].tx      = tx;
-	s_ctx.steps[s_ctx.num_steps].ty      = ty;
-	s_ctx.steps[s_ctx.num_steps].class   = current.c;
-	s_ctx.steps[s_ctx.num_steps].chain   = chain;
-	s_ctx.steps[s_ctx.num_steps].total   = total;
-	s_ctx.steps[s_ctx.num_steps].is_hard = is_hard;
+	s_ctx.steps[s_ctx.num_steps].tx = tx;
+	s_ctx.steps[s_ctx.num_steps].ty = ty;
+
+	s_ctx.steps_info[s_ctx.num_steps].class   = current.c;
+	s_ctx.steps_info[s_ctx.num_steps].chain   = chain;
+	s_ctx.steps_info[s_ctx.num_steps].total   = total;
+	s_ctx.steps_info[s_ctx.num_steps].is_hard = is_hard;
+
 	++s_ctx.num_steps;
 }
 
@@ -378,8 +377,9 @@ static void map_view_update() {
 	if (map_view_pick_tile(x, y, &tx, &ty)) {
 		if (input_button_clicked(INPUT_BUTTON_LEFT)) {
 			if (path_contains(tx, ty)) {
-				// TODO: Split & walk.
+				// TODO: Split.
 				log_info("[travel map] Walking to %d, %d", tx, ty);
+				session_move(s_ctx.steps, s_ctx.num_steps);
 			} else if (world_is_hidden(session_current()->world, tx, ty)) {
 				session_reveal(tx, ty);
 			} else {
@@ -905,12 +905,12 @@ static void path_render() {
 		if (i != s_ctx.num_steps - 1) {
 			const int32_t tx1  = s_ctx.steps[i + 1].tx;
 			const int32_t ty1  = s_ctx.steps[i + 1].ty;
-			const bool is_hard = s_ctx.steps[i + 1].is_hard;
+			const bool is_hard = s_ctx.steps_info[i + 1].is_hard;
 			path_render_arrow(tx0, ty0, tx1, ty1, is_hard);
 		}
 
 		char buf[64];
-		snprintf(buf, sizeof(buf), "%hhu", s_ctx.steps[i].total);
+		snprintf(buf, sizeof(buf), "%hhu", s_ctx.steps_info[i].total);
 		const struct sprite_t* p = get_path_point(tx0, ty0);
 		render_sprite(p, x + TILE * 0.25f, y + TILE * 0.25f);
 		render_text(buf, x + TILE * 0.5f,  y + TILE * 0.5f - 1.0f, &TEXT);
