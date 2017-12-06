@@ -26,6 +26,12 @@ static const float  SCREEN_SIZE      = 8    * TILE;
 
 #define MAX_PATH_LENGTH 100
 
+typedef enum {
+	TRAVEL_MAP_DEFAULT = 0,
+	TRAVEL_MAP_DRAWING,
+	TRAVEL_MAP_WALKING
+} state_t;
+
 typedef struct {
 	uint8_t class;
 	uint8_t chain;
@@ -47,8 +53,7 @@ static struct {
 	int32_t selector_y;
 	bool    has_selector;
 
-	bool is_drawing;
-	bool is_scrolling;
+	uint8_t state;
 } s_ctx;
 
 // HELPERS
@@ -92,6 +97,18 @@ static bool is_tile_dragged(int32_t tx, int32_t ty) {
 	}
 	return false;
 }
+
+// STATE HELPERS
+// =============
+
+static bool state_can_draw() {
+	return s_ctx.state != TRAVEL_MAP_DRAWING
+		&& s_ctx.state != TRAVEL_MAP_WALKING
+		&& input_dragging(INPUT_BUTTON_LEFT);
+}
+
+static bool state_is_drawing() { return s_ctx.state == TRAVEL_MAP_DRAWING; }
+static bool state_is_walking() { return s_ctx.state == TRAVEL_MAP_WALKING; }
 
 // TERRAIN CLASSES
 // ===============
@@ -375,7 +392,8 @@ static void map_view_update() {
 
 	int32_t tx, ty;
 	if (map_view_pick_tile(x, y, &tx, &ty)) {
-		if (input_button_clicked(INPUT_BUTTON_LEFT)) {
+		// TODO: Handle clicks on future steps when walking.
+		if (!state_is_walking() && input_button_clicked(INPUT_BUTTON_LEFT)) {
 			if (path_contains(tx, ty)) {
 				// TODO: Split.
 				log_info("[travel map] Walking to %d, %d", tx, ty);
@@ -388,15 +406,16 @@ static void map_view_update() {
 			}
 		}
 
-		if (!s_ctx.is_drawing && input_dragging(INPUT_BUTTON_LEFT)) {
-			s_ctx.is_drawing = path_can_start_from(tx, ty);
+		if (state_can_draw() &&	path_can_start_from(tx, ty)) {
+			s_ctx.state = TRAVEL_MAP_DRAWING;
 		}
-		if (s_ctx.is_drawing) {
-			s_ctx.is_drawing = input_dragging(INPUT_BUTTON_LEFT);
+		if (state_is_drawing()) {
+			if (!input_dragging(INPUT_BUTTON_LEFT)) {
+				s_ctx.state = TRAVEL_MAP_DEFAULT;
+			}
 			path_input(tx, ty);
 		} else {
-			s_ctx.is_scrolling = input_dragging(INPUT_BUTTON_LEFT);
-			if (s_ctx.is_scrolling) {
+			if (input_dragging(INPUT_BUTTON_LEFT)) {
 				scroll_update();
 			}
 		}
