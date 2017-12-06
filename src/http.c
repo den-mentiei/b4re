@@ -15,8 +15,9 @@
 #define REQUESTS_ID_ADD        REQUESTS_MAX_IN_FLIGHT
 
 typedef struct {
-	CURL*      h;
-	curl_mime* mime;
+	CURL*              h;
+	curl_mime*         mime;
+	struct curl_slist* headers;
 
 	void*  buffer;
 	size_t free;
@@ -63,7 +64,8 @@ static void finish_work(CURL* h) {
 	curl_easy_getinfo(h, CURLINFO_PRIVATE, &req);
 	assert(req);
 
-	if (req->mime) curl_mime_free(req->mime);
+	if (req->headers) curl_slist_free_all(req->headers);
+	if (req->mime)    curl_mime_free(req->mime);
 
 	// TODO: Get more info & record networking stats. See: https://curl.haxx.se/libcurl/c/curl_easy_getinfo.html
 
@@ -266,12 +268,14 @@ static http_work_id_t requests_add(void* buffer, size_t size) {
 	assert(work_can_add(&s_ctx.work));
 
 	http_work_id_t id  = work_add(&s_ctx.work);
-	request_t*      req = &work_lookup(&s_ctx.work, id)->req;
+	request_t*     req = &work_lookup(&s_ctx.work, id)->req;
 	
-	req->status = HTTP_STATUS_IN_PROGRESS;
-	req->buffer = buffer;
-	req->free   = size;
-	req->used   = 0;
+	req->status  = HTTP_STATUS_IN_PROGRESS;
+	req->buffer  = buffer;
+	req->free    = size;
+	req->used    = 0;
+	req->mime    = NULL;
+	req->headers = NULL;
 
 	return id;
 }
@@ -337,8 +341,37 @@ http_work_id_t http_get(const char* url, void* buffer, size_t size) {
 	http_work_id_t id = requests_add(buffer, size);
 	CURL*           h  = work_lookup(&s_ctx.work, id)->req.h;
 
+	curl_easy_setopt(h, CURLOPT_URL,        url);
+	curl_easy_setopt(h, CURLOPT_HTTPGET,    1);
+	curl_easy_setopt(h, CURLOPT_HTTPHEADER, NULL);
+
+	add_to_multi(h);
+
+	return id;
+}
+
+// TODO: Move out common form vs json and re-use rest of the code. 
+
+http_work_id_t http_post_json(const char* url, const char* payload, void* buffer, size_t size) {
+	assert(url);
+	assert(payload);
+	assert(buffer);
+	assert(size > 0);
+
+	if (!work_can_add(&s_ctx.work)) return 0;
+
+	http_work_id_t id  = requests_add(buffer, size);
+	request_t*     req = &work_lookup(&s_ctx.work, id)->req;
+	CURL*          h   = req->h;
+
 	curl_easy_setopt(h, CURLOPT_URL, url);
-	curl_easy_setopt(h, CURLOPT_HTTPGET, 1);
+	curl_easy_setopt(h, CURLOPT_POST, 1);
+	
+	req->headers = curl_slist_append(NULL, "Content-Type: application/json");
+
+	curl_easy_setopt(h, CURLOPT_MIMEPOST,       NULL);
+	curl_easy_setopt(h, CURLOPT_HTTPHEADER,     req->headers);
+	curl_easy_setopt(h, CURLOPT_COPYPOSTFIELDS, payload);
 
 	add_to_multi(h);
 
@@ -356,8 +389,9 @@ http_work_id_t http_post_form(const char* url, const http_form_part_t* parts, si
 	request_t*     req = &work_lookup(&s_ctx.work, id)->req;
 	CURL*          h   = req->h;
 
-	curl_easy_setopt(h, CURLOPT_URL, url);
-	curl_easy_setopt(h, CURLOPT_POST, 1);
+	curl_easy_setopt(h, CURLOPT_URL,        url);
+	curl_easy_setopt(h, CURLOPT_POST,       1);
+	curl_easy_setopt(h, CURLOPT_HTTPHEADER, NULL);
 
 	if (parts && num_parts > 0) {
 		curl_mime* m = curl_mime_init(h);
