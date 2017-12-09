@@ -4,6 +4,7 @@
 #include <stdio.h>  // snprintf
 #include <stdlib.h> // abs
 
+#include "utils.h"
 #include "game.h"
 #include "world.h"
 #include "log.h"
@@ -151,16 +152,14 @@ TERRAIN_PRICE[] = {
 };
 
 static uint8_t terrain_get_class(uint8_t t) {
-	const size_t  N = sizeof(TERRAIN_CLASS) / sizeof(TERRAIN_CLASS[0]);
-	for (size_t i = 0; i < N; ++i) {
+	for (size_t i = 0; i < ARRAY_SIZE(TERRAIN_CLASS); ++i) {
 		if (TERRAIN_CLASS[i].t == t) return TERRAIN_CLASS[i].c;
 	}
 	return TERRAIN_CLASS_DEFAULT;
 }
 
 static path_price_t terrain_get_price(uint8_t class) {
-	const size_t N = sizeof(TERRAIN_PRICE) / sizeof(TERRAIN_PRICE[0]);
-	for (size_t i = 0; i < N; ++i) {
+	for (size_t i = 0; i < ARRAY_SIZE(TERRAIN_PRICE); ++i) {
 		if (TERRAIN_PRICE[i].c == class) return TERRAIN_PRICE[i];
 	}
 	return TERRAIN_PRICE[0];
@@ -440,8 +439,7 @@ static const struct sprite_t* lookup_terrain_sprite(uint8_t t) {
 		{ TERRAIN_WATER_DEEP,   SPRITE(water_deep)   },
 	};
 #undef SPRITE
-	const size_t N = sizeof(TERRAIN_SPRITES) / sizeof(TERRAIN_SPRITES[0]);
-	for (size_t i = 0 ; i < N; ++i) {
+	for (size_t i = 0 ; i < ARRAY_SIZE(TERRAIN_SPRITES); ++i) {
 		if (TERRAIN_SPRITES[i].t == t) return TERRAIN_SPRITES[i].s;
 	}
 	return TERRAIN_SPRITES[0].s;
@@ -507,20 +505,20 @@ static void map_view_render() {
 }
 
 static void reveal_render() {
-	const struct { int8_t dx; int8_t dy; } LOOKUP[] = {
+	const struct { int8_t dx; int8_t dy; }
+	LOOKUP[] = {
 		{ -1,  0 },
 		{  1,  0 },
 		{  0, -1 },
 		{  0,  1 },
 	};
-	const size_t N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
 
 	const float   ox = VIEW_OFFSET + s_ctx.map_x;
 	const float   oy = VIEW_OFFSET + s_ctx.map_y;
 	const int32_t px = session_current()->player.x;
 	const int32_t py = session_current()->player.y;
 
-	for (size_t i = 0; i < N; ++i) {
+	for (size_t i = 0; i < ARRAY_SIZE(LOOKUP); ++i) {
 		const int64_t nx = px + LOOKUP[i].dx;
 		const int64_t ny = py + LOOKUP[i].dy;
 		const float   x  = ox + TILE * (nx - s_ctx.tile_x) + TILE * 0.25f;
@@ -803,7 +801,6 @@ static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, bool u
 #define SPRITE(s)     assets_sprites()->travel_map.s
 #define DIR_SPRITE(s) SPRITE(direction_##s)
 #define DIRECTIONS(s) { DIR_SPRITE(north_##s), DIR_SPRITE(south_##s), DIR_SPRITE(west_##s), DIR_SPRITE(east_##s) }
-
 	typedef struct {
 		uint8_t c;
 		// n s w e
@@ -820,20 +817,17 @@ static void get_arrow(int32_t tx0, int32_t ty0, int32_t tx1, int32_t ty1, bool u
 		{ TERRAIN_CLASS_SAND,    DIRECTIONS(sand)  },
 		{ TERRAIN_CLASS_WATER,   DIRECTIONS(water) },
 	};
-	const size_t NUM_NORMAL = sizeof(LOOKUP_NORMAL) / sizeof(LOOKUP_NORMAL[0]);
 
 	const arrow_sprites_t LOOKUP_HARD[] = {
 		{ TERRAIN_CLASS_DEFAULT, DIRECTIONS(rock)  },
 		{ TERRAIN_CLASS_WATER,   DIRECTIONS(water_hard) },
 	};
-	const size_t NUM_HARD = sizeof(LOOKUP_HARD) / sizeof(LOOKUP_HARD[0]);
-
 #undef SPRITE
 #undef DIR_SPRITE
 #undef DIRECTIONS
 
 	const arrow_sprites_t* LOOKUP = use_hard ? LOOKUP_HARD : LOOKUP_NORMAL;
-	const size_t N = use_hard ? NUM_HARD : NUM_NORMAL;
+	const size_t N = use_hard ? ARRAY_SIZE(LOOKUP_HARD) : ARRAY_SIZE(LOOKUP_NORMAL);
 
 	// n s w e
 	const struct { float dx; float dy; }
@@ -878,10 +872,9 @@ static const struct sprite_t* get_path_point(int32_t tx, int32_t ty) {
 		{ TERRAIN_CLASS_WATER,   POINT(water) },
 	};
 #undef POINT
-	const size_t  N = sizeof(LOOKUP) / sizeof(LOOKUP[0]);
 	const uint8_t t = world_terrain(session_current()->world, tx, ty);
 	const uint8_t c = terrain_get_class(t);
-	for (size_t i = 0; i < N; ++i) {
+	for (size_t i = 0; i < ARRAY_SIZE(LOOKUP); ++i) {
 		if (LOOKUP[i].c == c) return LOOKUP[i].p;
 	}
 	return LOOKUP[0].p;
@@ -964,11 +957,11 @@ static int8_t dir(int32_t from, int32_t to) {
 	return 0;
 }
 
-static struct {
+const static struct {
 	int8_t  dx;
 	int8_t  dy;
 	uint8_t i;
-} s_compass_lookup[] = {
+} COMPAS_LOOKUP[] = {
 	{ -1, -1, 0 },
 	{  0, -1, 1 },
 	{  1, -1, 2 },
@@ -980,14 +973,12 @@ static struct {
 };
 
 static uint8_t lookup_compass_sprite(int32_t px, int32_t py, int32_t cx, int32_t cy) {
-	const size_t NUM_SPRITES = sizeof(s_compass_lookup) / sizeof(s_compass_lookup[0]);
-
 	const int8_t dx = dir(cx, px);
 	const int8_t dy = dir(cy, py);
 
-	for (size_t i = 0; i < NUM_SPRITES; ++i) {
-		if (s_compass_lookup[i].dx == dx && s_compass_lookup[i].dy == dy) {
-			return s_compass_lookup[i].i;
+	for (size_t i = 0; i < ARRAY_SIZE(COMPAS_LOOKUP); ++i) {
+		if (COMPAS_LOOKUP[i].dx == dx && COMPAS_LOOKUP[i].dy == dy) {
+			return COMPAS_LOOKUP[i].i;
 		}
 	}
 
@@ -1051,9 +1042,9 @@ static void player_render() {
 		AVATAR(avatar_man6),
 	};
 #undef AVATAR
-	uint8_t id = session_current()->player.avatar;
-	if (id > sizeof(AVATARS) / sizeof(AVATARS[0])) id = 0;
 
+	uint8_t id = session_current()->player.avatar;
+	if (id > ARRAY_SIZE(AVATARS)) id = 0;
 	render_sprite(AVATARS[id], x, y);
 }
 

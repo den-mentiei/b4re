@@ -5,6 +5,7 @@
 #include <math.h>   // floor
 #include <stdlib.h> // rand
 
+#include "utils.h"
 #include "log.h"
 #include "client.h"
 #include "api.h"
@@ -26,8 +27,6 @@ static struct {
 	session_t current;
 	uint8_t   status;
 } s_ctx;
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 static inline uint8_t randi(uint8_t max) {
 	return floor(((float)rand() / RAND_MAX) * max);

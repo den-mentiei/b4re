@@ -3,11 +3,10 @@
 #include <assert.h>
 #include <string.h> // strcmp
 
+#include "utils.h"
 #include "log.h"
 #include "json.h"
 #include "world.h"
-
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 #define BOOL_PROPERTY(j, v, s)      json_bool  ((j), json_property((j), (v), (s)))
 #define NUMBER_PROPERTY(j, v, s)    json_number((j), json_property((j), (v), (s)))

@@ -7,6 +7,8 @@
 #include <stb_image.h>
 #include <bgfx/bgfx.h>
 
+#include "utils.h"
+
 #include "shaders/tex_color_vs.h"
 #include "shaders/tex_color_fs.h"
 
@@ -160,8 +162,8 @@ void render_sprite_colored(const sprite_t* s, float x, float y, color_t color) {
 	VERT(3, x,     y + h);
 #undef VERT
 
-	const size_t NUM_INDICES =  sizeof(s_indices) / sizeof(s_indices[0]);
-	const size_t NUM_VERTICES = sizeof(s_vertices) / sizeof(s_vertices[0]);
+	const size_t NUM_INDICES  = ARRAY_SIZE(s_indices);
+	const size_t NUM_VERTICES = ARRAY_SIZE(s_vertices);
 
 	bgfx_transient_vertex_buffer_t tvb;
 	bgfx_transient_index_buffer_t  tib;
@@ -276,8 +278,8 @@ void render_tile(const struct sprite_t* tilemap, float x, float y, const render_
 
 #undef VERT
 
-	const size_t NUM_INDICES =  sizeof(s_indices) / sizeof(s_indices[0]);
-	const size_t NUM_VERTICES = sizeof(s_tile_vertices) / sizeof(s_tile_vertices[0]);
+	const size_t NUM_INDICES  = ARRAY_SIZE(s_indices);
+	const size_t NUM_VERTICES = ARRAY_SIZE(s_vertices);
 
 	bgfx_transient_vertex_buffer_t tvb;
 	bgfx_transient_index_buffer_t  tib;

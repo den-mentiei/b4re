@@ -7,10 +7,9 @@
 
 #include <jsmn.h>
 
+#include "utils.h"
 #include "allocator.h"
 #include "log.h"
-
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
 typedef struct json_t {
 	allocator_t* alloc;

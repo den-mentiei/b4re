@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>  // snprintf
 
+#include "utils.h"
 #include "log.h"
 #include "http.h"
 #include "allocator.h"
@@ -105,10 +106,9 @@ HANDLERS[] = {
 	{ MESSAGE_TYPE_MAP,    handle_map    },
 	{ MESSAGE_TYPE_REVEAL, handle_reveal }
 };
-static const size_t NUM_HANDLERS = sizeof(HANDLERS) / sizeof(HANDLERS[0]);
 
 static handler_t handlers_lookup(uint8_t type) {
-	for (size_t i = 0; i < NUM_HANDLERS; ++i) {
+	for (size_t i = 0; i < ARRAY_SIZE(HANDLERS); ++i) {
 		if (HANDLERS[i].t == type) return HANDLERS[i].h;
 	}
 	return HANDLERS[0].h;
