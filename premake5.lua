@@ -11,7 +11,7 @@ local BUILD_DIR    = "./.build"
 local PROJECTS_DIR = path.join(BUILD_DIR, "projects")
 local TARGET_DIR   = path.join(BUILD_DIR, "bin", OS)
 
-require "clang_format"
+require "clang_complete"
 
 workspace "b4re"
 	configurations { "debug", "release" }
